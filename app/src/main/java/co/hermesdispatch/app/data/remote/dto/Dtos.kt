@@ -49,3 +49,15 @@ data class ChatStartRequest(
 data class ChatStartResponse(
     @SerialName("stream_id") val streamId: String,
 )
+
+@Serializable
+data class NewSessionRequest(
+    val workspace: String? = null,
+    val model: String? = null,
+)
+
+@Serializable
+data class SteerRequest(
+    @SerialName("stream_id") val streamId: String,
+    val message: String,
+)

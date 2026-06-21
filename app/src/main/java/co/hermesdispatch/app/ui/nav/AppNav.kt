@@ -16,11 +16,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import co.hermesdispatch.app.data.repository.AuthRepository
+import co.hermesdispatch.app.ui.chat.ChatScreen
+import co.hermesdispatch.app.ui.chat.ChatViewModel
 import co.hermesdispatch.app.ui.pairing.PairingScreen
 import co.hermesdispatch.app.ui.scheduled.ScheduledScreen
 import co.hermesdispatch.app.ui.tasks.TasksScreen
@@ -31,6 +35,8 @@ object Routes {
     const val PAIRING = "pairing"
     const val TASKS = "tasks"
     const val SCHEDULED = "scheduled"
+    const val CHAT = "chat" // chat/{sessionId}; sessionId == "new" starts a fresh task
+    fun chat(sessionId: String) = "$CHAT/$sessionId"
 }
 
 @HiltViewModel
@@ -85,8 +91,19 @@ fun AppNav(rootViewModel: RootViewModel = hiltViewModel()) {
                     }
                 })
             }
-            composable(Routes.TASKS) { TasksScreen() }
+            composable(Routes.TASKS) {
+                TasksScreen(
+                    onTaskClick = { sessionId -> navController.navigate(Routes.chat(sessionId)) },
+                    onNewTask = { navController.navigate(Routes.chat(ChatViewModel.NEW)) },
+                )
+            }
             composable(Routes.SCHEDULED) { ScheduledScreen() }
+            composable(
+                route = "${Routes.CHAT}/{sessionId}",
+                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+            ) {
+                ChatScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }
