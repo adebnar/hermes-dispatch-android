@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Security: cleartext (HTTP) traffic is disabled by default. Self-hosted Hermes
+  bridges should be reached over HTTPS (e.g. Tailscale Serve / a reverse proxy).
+  Users who must test over a plain-HTTP LAN can enable a debug overlay; we do not
+  ship a cleartext allowance in release builds.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

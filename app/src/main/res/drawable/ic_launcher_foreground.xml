@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Stylized winged-messenger "H" (Hermes) -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M40,38h6v14h16V38h6v34h-6V58H46v14h-6z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M30,46c6,-3 12,-3 16,-1c-5,1 -9,3 -12,6c-2,-2 -3,-4 -4,-5z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M78,46c-6,-3 -12,-3 -16,-1c5,1 9,3 12,6c2,-2 3,-4 4,-5z" />
+</vector>

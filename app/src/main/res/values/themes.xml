@@ -1,0 +1,4 @@
+<resources>
+    <style name="Theme.HermesDispatch" parent="android:Theme.Material.Light.NoActionBar" />
+    <color name="ic_launcher_background">#0B5FFF</color>
+</resources>
