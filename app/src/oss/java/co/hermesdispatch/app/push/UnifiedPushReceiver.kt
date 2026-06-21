@@ -22,8 +22,17 @@ class UnifiedPushReceiver : MessagingReceiver() {
     }
 
     override fun onNewEndpoint(context: Context, endpoint: PushEndpoint, instance: String) {
-        SecureSettings(context).setPushEndpoint(endpoint.url)
-        // TODO(Phase 4+): POST the endpoint to the bridge so it can target this device.
+        val settings = SecureSettings(context)
+        settings.setPushEndpoint(endpoint.url)
+        // Register this device's endpoint with the bridge (off the main thread).
+        val pending = goAsync()
+        Thread {
+            try {
+                BridgeRegistrar.register(settings.bridgeUrl(), settings.bridgeToken(), endpoint.url)
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 
     override fun onRegistrationFailed(context: Context, reason: FailedReason, instance: String) {
@@ -31,6 +40,18 @@ class UnifiedPushReceiver : MessagingReceiver() {
     }
 
     override fun onUnregistered(context: Context, instance: String) {
-        SecureSettings(context).setPushEndpoint(null)
+        val settings = SecureSettings(context)
+        val endpoint = settings.pushEndpoint()
+        settings.setPushEndpoint(null)
+        if (endpoint != null) {
+            val pending = goAsync()
+            Thread {
+                try {
+                    BridgeRegistrar.unregister(settings.bridgeUrl(), settings.bridgeToken(), endpoint)
+                } finally {
+                    pending.finish()
+                }
+            }.start()
+        }
     }
 }
