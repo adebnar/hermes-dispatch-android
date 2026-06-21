@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Security: cleartext (HTTP) traffic is disabled by default. Self-hosted Hermes
-  bridges should be reached over HTTPS (e.g. Tailscale Serve / a reverse proxy).
-  Users who must test over a plain-HTTP LAN can enable a debug overlay; we do not
-  ship a cleartext allowance in release builds.
+  Hermes Dispatch connects to a *self-hosted* bridge on the user's own network.
+  The intended transport is Tailscale (WireGuard-encrypted) or a trusted LAN, so
+  plain-HTTP bridge URLs (e.g. http://100.x.y.z:8099) must be allowed — otherwise
+  the app can't reach a bridge that isn't behind a TLS reverse proxy.
+
+  Security model: confidentiality/integrity come from the private network
+  (Tailscale/LAN). For exposure over the public internet, put the bridge behind
+  HTTPS (Tailscale Serve / a reverse proxy) and use an https:// URL — that path
+  uses the system trust anchors below.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false">
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

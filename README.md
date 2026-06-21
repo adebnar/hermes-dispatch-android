@@ -3,76 +3,132 @@
 **An open-source, mobile-first Android app for your [Hermes](https://github.com/NousResearch/hermes-agent) agents.**
 Fire off tasks by voice or text, watch your self-hosted agent work in real time, control its scheduled jobs, and get progress on your lock screen — all from your phone.
 
-> Status: **early development.** This repo currently contains the Phase 1 vertical slice (pairing → live task & schedule lists, backed by your Hermes bridge) plus the full app architecture for later phases. See [the roadmap](#roadmap).
+### 📲 Download
+**[⬇️ Latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest)** — grab `hermes-dispatch-oss.apk` from the latest release and install it (you'll need to allow "install from unknown sources").
+
+> Direct link to the newest build: <https://github.com/adebnar/hermes-dispatch-android/releases/latest/download/hermes-dispatch-oss.apk>
+
+The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
 ## Features
-
 - 📋 **Tasks** — history of what your agent has done, with live status.
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete.
-- 🗣️ **Voice or text** task creation *(Phase 3)*.
-- 🔴 **Live execution** — stream the agent's tool-use as it happens *(Phase 2)*.
-- 🔔 **Lock-screen progress** with the app closed, via **UnifiedPush/ntfy** — no Google services required *(Phase 4)*.
-- 👥 **Profiles** — switch between multiple Hermes profiles.
-
-## Architecture
-
-```
-Android app (Kotlin/Compose)  ──REST+SSE──►  Hermes bridge  ──►  Hermes Agent (your server)
-        ▲ UnifiedPush (ntfy)  ◄──push──────  (hermes-webui or sidecar)        └► MCP tools, cron, skills
-```
-
-The app talks to a small **self-hosted bridge** — [hermes-dispatch-bridge](https://github.com/adebnar/hermes-dispatch-bridge) — that fronts your Hermes agent (via [hermes-webui](https://github.com/nesquena/hermes-webui)), holds runs server-side, classifies cron tasks, and pushes progress. The app authenticates to it with a single bridge token. See [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).
+- 🗣️ **Voice or text** task creation (on-device speech-to-text).
+- 🔴 **Live execution** — stream the agent's text + tool-use as it happens.
+- 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required.
+- 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs and the task list scope to the selected one.
 
 ---
 
-## Setup
+## How it works
 
-Setup is split into **🧑 what a human does** (credentials, decisions, networking — things an agent shouldn't do for you) and **🤖 what you can ask your Hermes agent to build** (boilerplate the agent can scaffold). Copy the 🤖 prompts straight into your Hermes chat.
+```
+Android app ──REST + SSE──► hermes-dispatch-bridge ──REST + WS──► hermes-agent dashboard ──► MCP tools, cron, skills
+     ▲ UnifiedPush (ntfy) ◄── push ──┘ (server-held runs, cron classify, fan-out)
+```
 
-### 0. Prerequisites — 🧑 human
-- A running **Hermes Agent** on an always-on machine, with a model provider and the MCPs you want (Gmail, Sheets, web search…).
-- A way to reach it from your phone: **[Tailscale](https://tailscale.com)** (easiest), or a reverse proxy with HTTPS.
-- To build from source: Android Studio (Ladybug+) / JDK 17.
-
-### 1. The bridge
-- **🧑 human:** run [hermes-dispatch-bridge](https://github.com/adebnar/hermes-dispatch-bridge) next to Hermes (it fronts hermes-webui), set `HERMES_WEBUI_*` + a strong `BRIDGE_TOKEN`, expose it over HTTPS, and note the URL + token. See that repo's README.
-- **🤖 ask Hermes:** (see the bridge repo's setup prompts — it can scaffold the compose, generate the token, and wire ntfy.)
-
-### 2. Push (UnifiedPush via ntfy) — the dead-simple default
-- **🧑 human:** install the **[ntfy](https://ntfy.sh) Android app** (the UnifiedPush distributor); pick a hard-to-guess topic; use public `ntfy.sh` or self-host. Paste the topic into Hermes Dispatch's pairing screen.
-- **🤖 ask Hermes:**
-  > "Add an ntfy service to my docker-compose with a persistent volume and a random topic; print the topic and publish URL."
-  > "Write a small `push_shim.py` that subscribes to hermes-webui's chat stream for active runs and POSTs concise progress lines ('Using MCP: gmail', 'Complete') to my ntfy topic; make the topic and base URL env-configurable."
-
-> **Advanced (optional):** the `play` build flavor adds *bring-your-own Firebase*, configured at runtime in **Admin → Notifications** (no `google-services.json`, no rebuild). The default `oss` flavor stays Google-library-free. Most people never need this.
-
-### 3. Install the app — 🧑 human
-Build the `oss` flavor (`./gradlew assembleOssDebug`) or install a release. First run: enter your **bridge URL + token** → pick your profile → (optionally) paste your ntfy topic.
+The app talks to a small **self-hosted bridge** —
+[**hermes-dispatch-bridge**](https://github.com/adebnar/hermes-dispatch-bridge) — that runs next to your
+Hermes agent. The bridge fronts the hermes-agent dashboard, holds runs server-side
+(so they keep going when your phone sleeps), classifies cron tasks, and pushes progress.
+The app authenticates to the bridge with a single **bridge token**.
 
 ---
 
-## Build & test
+## Setup (full walkthrough)
 
+You need three things running, then you install the app. Steps are split into
+**🧑 what a human does** and **🤖 what you can ask your Hermes agent to build for you**.
+
+### 1. Hermes agent + dashboard — 🧑
+- Have **[Hermes](https://github.com/NousResearch/hermes-agent)** installed and its **dashboard** running
+  (the gateway web UI, default **port 9119**). Confirm it loads at `http://127.0.0.1:9119`.
+- Configure at least one model provider and the MCPs you want (Gmail, Sheets, web search…).
+
+### 2. The bridge — 🧑 (one-time) + 🤖
+Follow [hermes-dispatch-bridge → Setup](https://github.com/adebnar/hermes-dispatch-bridge#setup). In short:
 ```bash
-./gradlew testOssDebugUnitTest   # JVM unit tests (e.g. the SSE parser)
-./gradlew assembleOssDebug       # default, Google-free APK
-./gradlew assemblePlayDebug      # adds runtime-configurable FCM
+git clone https://github.com/adebnar/hermes-dispatch-bridge && cd hermes-dispatch-bridge
+uv venv --python 3.12 && uv pip install -e .
+cp .env.example .env          # then edit .env (see below)
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8099
 ```
+Your `.env` needs:
+- `HERMES_URL=http://127.0.0.1:9119` — your dashboard.
+- `HERMES_TOKEN=` — **leave empty**; for a local dashboard the bridge auto-reads the token.
+- `BRIDGE_TOKEN=<a strong random secret>` — **this is what you'll type into the app.**
+  Generate one: `python3 -c "import secrets;print(secrets.token_urlsafe(32))"`
+
+- **🤖 ask Hermes:** *"Generate a strong BRIDGE_TOKEN, write a `.env` for hermes-dispatch-bridge with HERMES_URL=http://127.0.0.1:9119, and install a launchd/systemd service so the bridge runs on boot."*
+
+### 3. Find your bridge URL + token — 🧑
+The phone needs the bridge's **URL** and **token**.
+
+**Get the address the phone should use** (the machine running the bridge):
+- **Tailscale (recommended)** — encrypted, works anywhere:
+  ```bash
+  tailscale ip -4        # e.g. 100.111.188.14  → bridge URL = http://100.111.188.14:8099
+  ```
+- **Same Wi-Fi (LAN)**:
+  ```bash
+  ipconfig getifaddr en0   # macOS, e.g. 192.168.33.3 → http://192.168.33.3:8099
+  hostname -I              # Linux (first address)
+  ```
+- The bridge listens on port **8099**, so the URL is `http://<that-ip>:8099`.
+
+> The app allows plain `http://` because you're on your own private network
+> (Tailscale is WireGuard-encrypted). To expose the bridge to the public internet,
+> put it behind HTTPS (Tailscale Serve / a reverse proxy) and use an `https://` URL.
+
+**Get the bridge token** (the `BRIDGE_TOKEN` you set in step 2):
+```bash
+grep BRIDGE_TOKEN ~/path/to/hermes-dispatch-bridge/.env
+```
+
+### 4. Background notifications (optional but recommended) — 🧑
+Install the **[ntfy](https://ntfy.sh) Android app** (it's the UnifiedPush distributor). That's it —
+Hermes Dispatch auto-registers your device with the bridge, which then pushes run
+progress to your lock screen. To self-host ntfy instead of the public server, see the bridge README.
+
+### 5. Install & pair the app — 🧑
+1. Install the [latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest).
+2. Open it and on the pairing screen enter:
+   - **Bridge URL** — e.g. `http://100.111.188.14:8099`
+   - **Bridge token** — your `BRIDGE_TOKEN`
+   - **Profile** (optional) — leave blank, or pick one later in Settings.
+3. Tap **Connect**. You're in — create a task with the ＋ button or a suggestion.
+
+---
+
+## Build from source
+```bash
+./gradlew testOssDebugUnitTest    # JVM unit tests
+./gradlew assembleOssDebug        # debug APK (oss, Google-free)
+./gradlew assembleOssRelease      # release APK (needs keystore.properties — see below)
+./gradlew assemblePlayDebug       # play flavor (adds runtime-configurable FCM)
+```
+For a signed release, create `keystore.properties` in the repo root (git-ignored):
+```properties
+storeFile=release.keystore
+storePassword=…
+keyAlias=…
+keyPassword=…
+```
+and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias … -keyalg RSA -keysize 2048 -validity 10000`). Without it, release builds are unsigned.
 
 ## Roadmap
-
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Pairing + read-only Tasks/Scheduled + cron control | ✅ |
 | 2 | Live chat + SSE streaming (split chat/actions) + pinned artifacts | ✅ |
 | 3 | Voice capture (on-device STT) + MCP/tools surfacing | ✅ |
-| 4 | Background push (UnifiedPush/ntfy) + lock-screen "live update" + deep-links | ✅ |
-| 5 | Settings + profile switcher, suggested tasks, pull-to-refresh, error/retry | ✅ |
+| 4 | Background push (UnifiedPush/ntfy) + lock-screen "live update" | ✅ |
+| 5 | Settings + profile switcher, suggested tasks, pull-to-refresh | ✅ |
 
-Deferred (already in the contract, additive later): categories grouping, artifact previews, file workspace, mid-run approvals UI, model picker, registering the push endpoint with the bridge, E2EE webpush.
+Deferred (additive later): categories grouping, artifact previews, file workspace, mid-run approvals UI, model picker, server-side STT, E2EE webpush.
 
 ## Contributing & security
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).
 
 ## License
 [Apache-2.0](LICENSE).

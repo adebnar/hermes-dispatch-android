@@ -13,9 +13,12 @@ files, and more. Practices in this codebase:
 - **Credentials at rest** are stored in `EncryptedSharedPreferences` (AES-256,
   Android Keystore-backed). Bridge URL, session cookie, and push endpoint never
   hit plaintext storage. See `data/prefs/SecureSettings.kt`.
-- **No cleartext networking** in release builds (`network_security_config.xml`,
-  `cleartextTrafficPermitted=false`). Reach your bridge over HTTPS (Tailscale
-  Serve / reverse proxy).
+- **Cleartext is permitted by design** for self-hosted bridges on a private
+  network (Tailscale is WireGuard-encrypted; LAN is trusted) — otherwise the app
+  couldn't reach a bridge without a TLS reverse proxy. Confidentiality/integrity
+  come from the private network. For public-internet exposure, front the bridge
+  with HTTPS (Tailscale Serve / reverse proxy) and use an `https://` URL (system
+  trust anchors). See `network_security_config.xml`.
 - **No secrets in the repo.** `google-services.json`, keystores, and `*.env` are
   git-ignored. The `play` flavor configures Firebase **at runtime**, so no
   service file is committed.
