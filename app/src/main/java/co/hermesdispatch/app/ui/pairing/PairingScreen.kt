@@ -35,7 +35,7 @@ fun PairingScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var url by rememberSaveable { mutableStateOf("https://") }
-    var password by rememberSaveable { mutableStateOf("") }
+    var token by rememberSaveable { mutableStateOf("") }
     var profile by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(state.done) { if (state.done) onPaired() }
@@ -50,7 +50,7 @@ fun PairingScreen(
     ) {
         Text("Connect to Hermes", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Enter your self-hosted Hermes bridge URL and password.",
+            "Enter your Hermes Dispatch bridge URL and access token.",
             style = MaterialTheme.typography.bodyMedium,
         )
         OutlinedTextField(
@@ -62,9 +62,9 @@ fun PairingScreen(
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
+            value = token,
+            onValueChange = { token = it },
+            label = { Text("Bridge token") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -81,8 +81,8 @@ fun PairingScreen(
             Text(state.error!!, color = MaterialTheme.colorScheme.error)
         }
         Button(
-            onClick = { viewModel.connect(url, password, profile) },
-            enabled = !state.loading && url.length > "https://".length && password.isNotBlank(),
+            onClick = { viewModel.connect(url, token, profile) },
+            enabled = !state.loading && url.length > "https://".length && token.isNotBlank(),
         ) {
             if (state.loading) {
                 CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))

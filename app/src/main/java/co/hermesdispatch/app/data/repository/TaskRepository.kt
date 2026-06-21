@@ -18,13 +18,13 @@ class TaskRepository @Inject constructor(
         rows.map { Task(id = it.id, title = it.title, status = it.status, model = it.model, updatedAt = it.updatedAt) }
     }
 
-    /** Pull the latest sessions from the bridge into the local cache. */
+    /** Pull the latest tasks from the bridge into the local cache. */
     suspend fun refresh(): Result<Unit> = runCatching {
-        val remote = api.sessions().map {
+        val remote = api.tasks().map {
             TaskEntity(
-                id = it.sessionId,
+                id = it.id,
                 title = it.title.ifBlank { "Untitled task" },
-                status = it.status.orEmpty(),
+                status = it.status,
                 model = it.model,
                 updatedAt = (it.updatedAt * 1000).toLong(),
             )

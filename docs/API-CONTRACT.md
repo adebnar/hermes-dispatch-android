@@ -1,11 +1,27 @@
-# Hermes bridge API contract (as consumed by Hermes Dispatch)
+# Bridge API contract (as consumed by Hermes Dispatch)
 
-This is the HTTP + SSE surface the app depends on. It mirrors the
-[hermes-webui](https://github.com/nesquena/hermes-webui) routes (`api/routes.py`,
-`api/streaming.py`). **It is not a formally stable upstream API** — the app's
-networking layer is deliberately tolerant (unknown fields ignored, unknown SSE
-events mapped to `Unknown`). A future `hermes-dispatch-bridge` will pin a
-versioned `/v1` shape.
+The app talks to the **[hermes-dispatch-bridge](https://github.com/adebnar/hermes-dispatch-bridge)**
+`/v1` API (Bearer-token auth). The bridge in turn fronts
+[hermes-webui](https://github.com/nesquena/hermes-webui) and holds runs
+server-side. The app's networking layer is deliberately tolerant (unknown fields
+ignored, unknown SSE events mapped to `Unknown`).
+
+## `/v1` (what the app calls)
+
+| App action | Bridge endpoint |
+|---|---|
+| Pair / verify | `GET /v1/auth/check` (Bearer) |
+| List tasks | `GET /v1/tasks` → `TaskDto[]` |
+| Start task | `POST /v1/tasks {message, session_id?, model?}` → `{kind, session_id?, stream_id?, cron?}` |
+| Stream a run | `GET /v1/tasks/{stream_id}/events` (SSE) |
+| Cancel / steer | `POST /v1/tasks/{stream_id}/{cancel,steer}` |
+| Schedules | `GET /v1/schedules`; `POST /v1/schedules/{id}/{pause,resume,run,delete}` |
+| MCP | `GET /v1/mcp` |
+
+A `POST /v1/tasks` may return `kind: "cron"` (the bridge classified it as
+recurring and created a schedule) instead of a streamable run.
+
+## Upstream SSE event vocabulary (bridge → app, passed through from webui)
 
 ## REST
 

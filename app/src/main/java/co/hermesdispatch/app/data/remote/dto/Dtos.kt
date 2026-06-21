@@ -3,31 +3,25 @@ package co.hermesdispatch.app.data.remote.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class LoginRequest(val password: String)
+/** Shapes of the Hermes Dispatch bridge `/v1` API. */
 
 @Serializable
-data class LoginResponse(val ok: Boolean = false)
-
-@Serializable
-data class SessionDto(
-    @SerialName("session_id") val sessionId: String,
+data class TaskDto(
+    val id: String,
     val title: String = "",
+    val status: String = "",
     val model: String? = null,
-    @SerialName("model_provider") val modelProvider: String? = null,
-    val status: String? = null,
     @SerialName("updated_at") val updatedAt: Double = 0.0,
 )
 
 @Serializable
-data class CronDto(
+data class ScheduleDto(
     val id: String,
     val name: String = "",
-    val schedule: String = "",
-    val enabled: Boolean = true,
-    @SerialName("next_run_at") val nextRunAt: Double? = null,
-    @SerialName("last_run_at") val lastRunAt: Double? = null,
-    val workspace: String? = null,
+    val cron: String = "",
+    val paused: Boolean = false,
+    @SerialName("next_run") val nextRun: Double? = null,
+    @SerialName("last_run") val lastRun: Double? = null,
 )
 
 @Serializable
@@ -38,26 +32,19 @@ data class McpServerDto(
 )
 
 @Serializable
-data class ChatStartRequest(
+data class StartTaskRequest(
+    val message: String,
     @SerialName("session_id") val sessionId: String? = null,
-    val message: String,
-    val model: String? = null,
-    val workspace: String? = null,
-)
-
-@Serializable
-data class ChatStartResponse(
-    @SerialName("stream_id") val streamId: String,
-)
-
-@Serializable
-data class NewSessionRequest(
-    val workspace: String? = null,
     val model: String? = null,
 )
 
 @Serializable
-data class SteerRequest(
-    @SerialName("stream_id") val streamId: String,
-    val message: String,
+data class StartTaskResponse(
+    val kind: String, // "oneshot" | "cron"
+    @SerialName("session_id") val sessionId: String? = null,
+    @SerialName("stream_id") val streamId: String? = null,
+    val cron: String? = null,
 )
+
+@Serializable
+data class SteerRequest(val message: String)

@@ -26,13 +26,13 @@ class PairingViewModel @Inject constructor(
     private val _state = MutableStateFlow(PairingUiState())
     val state: StateFlow<PairingUiState> = _state.asStateFlow()
 
-    fun connect(bridgeUrl: String, password: String, profile: String) {
+    fun connect(bridgeUrl: String, token: String, profile: String) {
         if (_state.value.loading) return
         _state.value = PairingUiState(loading = true)
         viewModelScope.launch {
-            auth.pairAndLogin(
+            auth.pairAndConnect(
                 bridgeUrl = bridgeUrl.trim(),
-                password = password,
+                token = token,
                 profile = profile.trim().ifBlank { null },
             ).fold(
                 onSuccess = {

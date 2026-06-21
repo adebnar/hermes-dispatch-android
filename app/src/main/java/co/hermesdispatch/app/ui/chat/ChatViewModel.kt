@@ -57,10 +57,17 @@ class ChatViewModel @Inject constructor(
 
         streamJob = viewModelScope.launch {
             runCatching {
-                val handle = repository.startRun(sessionId, message)
-                sessionId = handle.sessionId
-                currentStreamId = handle.streamId
-                repository.stream(handle.streamId).collect { reduce(it, assistant.id) }
+                when (val result = repository.startRun(sessionId, message)) {
+                    is ChatRepository.StartResult.Cron -> {
+                        val note = result.cron?.let { " (cron: $it)" }.orEmpty()
+                        extendAssistant(assistant.id, "Added to your Scheduled tasks$note.")
+                    }
+                    is ChatRepository.StartResult.Run -> {
+                        sessionId = result.sessionId ?: sessionId
+                        currentStreamId = result.streamId
+                        repository.stream(result.streamId).collect { reduce(it, assistant.id) }
+                    }
+                }
             }.onFailure { e ->
                 _state.update { it.copy(running = false, error = e.message ?: "Stream failed") }
             }

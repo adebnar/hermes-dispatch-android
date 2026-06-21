@@ -1,17 +1,15 @@
 package co.hermesdispatch.app.data.remote
 
 import co.hermesdispatch.app.data.prefs.SecureSettings
-import co.hermesdispatch.app.data.remote.dto.ChatStartRequest
-import co.hermesdispatch.app.data.remote.dto.ChatStartResponse
-import co.hermesdispatch.app.data.remote.dto.CronDto
-import co.hermesdispatch.app.data.remote.dto.LoginRequest
-import co.hermesdispatch.app.data.remote.dto.LoginResponse
 import co.hermesdispatch.app.data.remote.dto.McpServerDto
-import co.hermesdispatch.app.data.remote.dto.NewSessionRequest
-import co.hermesdispatch.app.data.remote.dto.SessionDto
+import co.hermesdispatch.app.data.remote.dto.ScheduleDto
+import co.hermesdispatch.app.data.remote.dto.StartTaskRequest
+import co.hermesdispatch.app.data.remote.dto.StartTaskResponse
 import co.hermesdispatch.app.data.remote.dto.SteerRequest
+import co.hermesdispatch.app.data.remote.dto.TaskDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -23,9 +21,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Thin typed wrapper over the Hermes (webui/bridge) HTTP contract. The base URL
- * and active profile are read live from [SecureSettings] so re-pairing or
- * switching profiles takes effect without rebuilding the client.
+ * Client for the Hermes Dispatch **bridge** `/v1` API. The bridge fronts the
+ * user's Hermes and holds long-running tasks; we authenticate with a single
+ * bearer token (the bridge holds the upstream webui password server-side).
+ *
+ * Base URL and token are read live from [SecureSettings] so re-pairing takes
+ * effect without rebuilding the client.
  */
 @Singleton
 class HermesApi @Inject constructor(
@@ -33,76 +34,56 @@ class HermesApi @Inject constructor(
     private val settings: SecureSettings,
     private val sse: SseClient,
 ) {
-    class NotPairedException : IllegalStateException("No Hermes bridge configured")
+    class NotPairedException : IllegalStateException("No bridge configured")
 
     private fun base(): String =
         settings.bridgeUrl()?.trimEnd('/') ?: throw NotPairedException()
 
-    private fun io.ktor.client.request.HttpRequestBuilder.profile() {
+    private fun HttpRequestBuilder.auth() {
+        settings.bridgeToken()?.takeIf { it.isNotBlank() }?.let {
+            header(HttpHeaders.Authorization, "Bearer $it")
+        }
         settings.activeProfile()?.let { header("X-Hermes-Profile", it) }
     }
 
-    suspend fun login(password: String): Boolean =
-        client.post("${base()}/api/auth/login") {
-            contentType(ContentType.Application.Json)
-            setBody(LoginRequest(password))
-        }.body<LoginResponse>().ok
+    /** Verify the bridge URL + token. Throws on non-2xx. */
+    suspend fun authCheck() {
+        client.get("${base()}/v1/auth/check") { auth() }.body<Map<String, Boolean>>()
+    }
 
-    suspend fun sessions(): List<SessionDto> =
-        client.get("${base()}/api/sessions") { profile() }.body()
+    suspend fun tasks(): List<TaskDto> =
+        client.get("${base()}/v1/tasks") { auth() }.body()
 
-    suspend fun crons(): List<CronDto> =
-        client.get("${base()}/api/crons") { profile() }.body()
+    suspend fun schedules(): List<ScheduleDto> =
+        client.get("${base()}/v1/schedules") { auth() }.body()
 
     suspend fun mcpServers(): List<McpServerDto> =
-        client.get("${base()}/api/mcp/servers") { profile() }.body()
+        client.get("${base()}/v1/mcp") { auth() }.body()
 
-    /** Create a fresh session/task; returns the new session id. */
-    suspend fun createSession(req: NewSessionRequest = NewSessionRequest()): String =
-        client.post("${base()}/api/session") {
+    suspend fun startTask(req: StartTaskRequest): StartTaskResponse =
+        client.post("${base()}/v1/tasks") {
             contentType(ContentType.Application.Json)
-            profile()
+            auth()
             setBody(req)
-        }.body<SessionDto>().sessionId
+        }.body()
 
-    suspend fun startChat(req: ChatStartRequest): String =
-        client.post("${base()}/api/chat/start") {
+    /** Server-Sent Events for a held run. */
+    fun streamTask(streamId: String) =
+        sse.stream("${base()}/v1/tasks/$streamId/events") { auth() }
+
+    suspend fun cancelTask(streamId: String) {
+        client.post("${base()}/v1/tasks/$streamId/cancel") { auth() }
+    }
+
+    suspend fun steerTask(streamId: String, message: String) {
+        client.post("${base()}/v1/tasks/$streamId/steer") {
             contentType(ContentType.Application.Json)
-            profile()
-            setBody(req)
-        }.body<ChatStartResponse>().streamId
-
-    /** Server-Sent Events for an in-flight run. */
-    fun streamChat(streamId: String) =
-        sse.stream("${base()}/api/chat/stream?stream_id=$streamId") { profile() }
-
-    suspend fun cancelChat(streamId: String) {
-        client.post("${base()}/api/chat/cancel") {
-            contentType(ContentType.Application.Json)
-            profile()
-            setBody(mapOf("stream_id" to streamId))
+            auth()
+            setBody(SteerRequest(message))
         }
     }
 
-    suspend fun steerChat(streamId: String, message: String) {
-        client.post("${base()}/api/chat/steer") {
-            contentType(ContentType.Application.Json)
-            profile()
-            setBody(SteerRequest(streamId, message))
-        }
-    }
-
-    suspend fun pauseCron(id: String) = cronAction("pause", id)
-    suspend fun resumeCron(id: String) = cronAction("resume", id)
-    suspend fun runCron(id: String) = cronAction("run", id)
-    suspend fun deleteCron(id: String) = cronAction("delete", id)
-
-    private suspend fun cronAction(action: String, id: String) {
-        client.post("${base()}/api/crons/$action") {
-            contentType(ContentType.Application.Json)
-            profile()
-            setBody(mapOf("id" to id))
-            header(HttpHeaders.Accept, ContentType.Application.Json.toString())
-        }
+    suspend fun scheduleAction(action: String, id: String) {
+        client.post("${base()}/v1/schedules/$id/$action") { auth() }
     }
 }

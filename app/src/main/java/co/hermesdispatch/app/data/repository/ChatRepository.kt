@@ -1,7 +1,7 @@
 package co.hermesdispatch.app.data.repository
 
 import co.hermesdispatch.app.data.remote.HermesApi
-import co.hermesdispatch.app.data.remote.dto.ChatStartRequest
+import co.hermesdispatch.app.data.remote.dto.StartTaskRequest
 import co.hermesdispatch.app.data.remote.sse.StreamEvent
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,22 +11,25 @@ import kotlinx.coroutines.flow.Flow
 class ChatRepository @Inject constructor(
     private val api: HermesApi,
 ) {
-    data class RunHandle(val sessionId: String, val streamId: String)
-
-    /**
-     * Begin a run. If [sessionId] is null a new session is created first so the
-     * task shows up in the Tasks list. Returns identifiers needed to stream and
-     * to cancel/steer.
-     */
-    suspend fun startRun(sessionId: String?, message: String): RunHandle {
-        val sid = sessionId ?: api.createSession()
-        val streamId = api.startChat(ChatStartRequest(sessionId = sid, message = message))
-        return RunHandle(sessionId = sid, streamId = streamId)
+    /** Result of starting a task. A recurring task becomes a [Cron]; a one-shot
+     *  task becomes a streamable [Run]. */
+    sealed interface StartResult {
+        data class Run(val sessionId: String?, val streamId: String) : StartResult
+        data class Cron(val cron: String?) : StartResult
     }
 
-    fun stream(streamId: String): Flow<StreamEvent> = api.streamChat(streamId)
+    suspend fun startRun(sessionId: String?, message: String): StartResult {
+        val resp = api.startTask(StartTaskRequest(sessionId = sessionId, message = message))
+        return if (resp.kind == "cron") {
+            StartResult.Cron(resp.cron)
+        } else {
+            StartResult.Run(resp.sessionId, requireNotNull(resp.streamId) { "missing stream_id" })
+        }
+    }
 
-    suspend fun cancel(streamId: String) = api.cancelChat(streamId)
+    fun stream(streamId: String): Flow<StreamEvent> = api.streamTask(streamId)
 
-    suspend fun steer(streamId: String, message: String) = api.steerChat(streamId, message)
+    suspend fun cancel(streamId: String) = api.cancelTask(streamId)
+
+    suspend fun steer(streamId: String, message: String) = api.steerTask(streamId, message)
 }

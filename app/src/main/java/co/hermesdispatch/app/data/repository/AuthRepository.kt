@@ -15,20 +15,20 @@ class AuthRepository @Inject constructor(
     fun bridgeUrl(): String? = settings.bridgeUrl()
     fun pushEndpoint(): String? = settings.pushEndpoint()
 
-    /** Persist the bridge URL, then authenticate. The session cookie is stored
-     *  by the HTTP client's cookie jar on success. */
-    suspend fun pairAndLogin(bridgeUrl: String, password: String, profile: String?): Result<Unit> =
+    /** Persist the bridge URL + token, then verify them against the bridge. */
+    suspend fun pairAndConnect(bridgeUrl: String, token: String, profile: String?): Result<Unit> =
         runCatching {
             require(bridgeUrl.startsWith("https://") || bridgeUrl.startsWith("http://")) {
                 "Bridge URL must start with http(s)://"
             }
             settings.setBridgeUrl(bridgeUrl)
+            settings.setBridgeToken(token.ifBlank { null })
             settings.setActiveProfile(profile)
-            val ok = api.login(password)
-            check(ok) { "Login rejected by the bridge" }
+            api.authCheck()
         }.onFailure {
             // Don't leave a half-paired state on failure.
             settings.setBridgeUrl(null)
+            settings.setBridgeToken(null)
         }
 
     fun setProfile(profile: String?) = settings.setActiveProfile(profile)

@@ -21,7 +21,7 @@ Android app (Kotlin/Compose)  ──REST+SSE──►  Hermes bridge  ──► 
         ▲ UnifiedPush (ntfy)  ◄──push──────  (hermes-webui or sidecar)        └► MCP tools, cron, skills
 ```
 
-The app talks to a small **self-hosted bridge** that fronts your Hermes Agent. For the MVP the bridge is just [hermes-webui](https://github.com/nesquena/hermes-webui); later it graduates to a dedicated `hermes-dispatch-bridge` sidecar that adds server-held runs, push, and speech-to-text. The full design is in [`docs/`](docs/) and the project plan.
+The app talks to a small **self-hosted bridge** — [hermes-dispatch-bridge](https://github.com/adebnar/hermes-dispatch-bridge) — that fronts your Hermes agent (via [hermes-webui](https://github.com/nesquena/hermes-webui)), holds runs server-side, classifies cron tasks, and pushes progress. The app authenticates to it with a single bridge token. See [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).
 
 ---
 
@@ -34,11 +34,9 @@ Setup is split into **🧑 what a human does** (credentials, decisions, networki
 - A way to reach it from your phone: **[Tailscale](https://tailscale.com)** (easiest), or a reverse proxy with HTTPS.
 - To build from source: Android Studio (Ladybug+) / JDK 17.
 
-### 1. The bridge (MVP = hermes-webui)
-- **🧑 human:** run [hermes-webui](https://github.com/nesquena/hermes-webui) next to Hermes, set `HERMES_WEBUI_PASSWORD`, expose it over HTTPS, and note the URL.
-- **🤖 ask Hermes:**
-  > "Write a `docker-compose.yml` that runs hermes-webui alongside my Hermes install (config from `~/.hermes`), with `HERMES_WEBUI_PASSWORD` from an env file and a healthcheck on `/health`. Then write a systemd unit so it starts on boot."
-  > "Write a one-page runbook for exposing this over Tailscale Serve with HTTPS."
+### 1. The bridge
+- **🧑 human:** run [hermes-dispatch-bridge](https://github.com/adebnar/hermes-dispatch-bridge) next to Hermes (it fronts hermes-webui), set `HERMES_WEBUI_*` + a strong `BRIDGE_TOKEN`, expose it over HTTPS, and note the URL + token. See that repo's README.
+- **🤖 ask Hermes:** (see the bridge repo's setup prompts — it can scaffold the compose, generate the token, and wire ntfy.)
 
 ### 2. Push (UnifiedPush via ntfy) — the dead-simple default
 - **🧑 human:** install the **[ntfy](https://ntfy.sh) Android app** (the UnifiedPush distributor); pick a hard-to-guess topic; use public `ntfy.sh` or self-host. Paste the topic into Hermes Dispatch's pairing screen.
@@ -49,7 +47,7 @@ Setup is split into **🧑 what a human does** (credentials, decisions, networki
 > **Advanced (optional):** the `play` build flavor adds *bring-your-own Firebase*, configured at runtime in **Admin → Notifications** (no `google-services.json`, no rebuild). The default `oss` flavor stays Google-library-free. Most people never need this.
 
 ### 3. Install the app — 🧑 human
-Build the `oss` flavor (`./gradlew assembleOssDebug`) or install a release. First run: enter bridge URL → log in → pick your profile → (optionally) paste your ntfy topic.
+Build the `oss` flavor (`./gradlew assembleOssDebug`) or install a release. First run: enter your **bridge URL + token** → pick your profile → (optionally) paste your ntfy topic.
 
 ---
 

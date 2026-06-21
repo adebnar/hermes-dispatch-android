@@ -31,11 +31,13 @@ class SecureSettings @Inject constructor(
     }
 
     fun bridgeUrl(): String? = prefs.getString(KEY_BRIDGE_URL, null)
+    fun bridgeToken(): String? = prefs.getString(KEY_BRIDGE_TOKEN, null)
     fun activeProfile(): String? = prefs.getString(KEY_PROFILE, null)
     fun pushEndpoint(): String? = prefs.getString(KEY_PUSH_ENDPOINT, null)
     fun isPaired(): Boolean = !bridgeUrl().isNullOrBlank()
 
     fun setBridgeUrl(url: String?) = prefs.edit().putString(KEY_BRIDGE_URL, url).apply()
+    fun setBridgeToken(token: String?) = prefs.edit().putString(KEY_BRIDGE_TOKEN, token).apply()
     fun setActiveProfile(profile: String?) = prefs.edit().putString(KEY_PROFILE, profile).apply()
     fun setPushEndpoint(endpoint: String?) = prefs.edit().putString(KEY_PUSH_ENDPOINT, endpoint).apply()
 
@@ -43,6 +45,7 @@ class SecureSettings @Inject constructor(
 
     private companion object {
         const val KEY_BRIDGE_URL = "bridge_url"
+        const val KEY_BRIDGE_TOKEN = "bridge_token"
         const val KEY_PROFILE = "active_profile"
         const val KEY_PUSH_ENDPOINT = "push_endpoint"
     }

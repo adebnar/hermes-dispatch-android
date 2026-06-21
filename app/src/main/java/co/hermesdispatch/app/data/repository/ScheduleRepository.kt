@@ -28,24 +28,27 @@ class ScheduleRepository @Inject constructor(
     }
 
     suspend fun refresh(): Result<Unit> = runCatching {
-        val remote = api.crons().map {
+        val remote = api.schedules().map {
             ScheduleEntity(
                 id = it.id,
                 name = it.name.ifBlank { "Scheduled task" },
-                cronExpr = it.schedule,
-                paused = !it.enabled,
-                nextRun = it.nextRunAt?.let { ts -> (ts * 1000).toLong() },
-                lastRun = it.lastRunAt?.let { ts -> (ts * 1000).toLong() },
+                cronExpr = it.cron,
+                paused = it.paused,
+                nextRun = it.nextRun?.let { ts -> (ts * 1000).toLong() },
+                lastRun = it.lastRun?.let { ts -> (ts * 1000).toLong() },
             )
         }
         dao.upsertAll(remote)
     }
 
     suspend fun setPaused(id: String, paused: Boolean): Result<Unit> = runCatching {
-        if (paused) api.pauseCron(id) else api.resumeCron(id)
+        api.scheduleAction(if (paused) "pause" else "resume", id)
         refresh()
     }
 
-    suspend fun runNow(id: String): Result<Unit> = runCatching { api.runCron(id) }
-    suspend fun delete(id: String): Result<Unit> = runCatching { api.deleteCron(id); refresh() }
+    suspend fun runNow(id: String): Result<Unit> = runCatching { api.scheduleAction("run", id) }
+    suspend fun delete(id: String): Result<Unit> = runCatching {
+        api.scheduleAction("delete", id)
+        refresh()
+    }
 }
