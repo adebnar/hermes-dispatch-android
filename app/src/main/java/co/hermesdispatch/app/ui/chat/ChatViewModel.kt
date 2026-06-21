@@ -22,6 +22,7 @@ data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val actions: List<ActionItem> = emptyList(),
     val artifacts: List<Artifact> = emptyList(),
+    val toolsUsed: Set<String> = emptySet(),
     val running: Boolean = false,
     val error: String? = null,
 )
@@ -78,8 +79,10 @@ class ChatViewModel @Inject constructor(
                 extendAssistant(assistantId, event.text)
                 harvestArtifacts(assistantId)
             }
-            is StreamEvent.Tool ->
+            is StreamEvent.Tool -> {
                 addAction(ActionItem.Kind.TOOL, listOfNotNull(event.name, event.preview).joinToString(": "))
+                _state.update { it.copy(toolsUsed = it.toolsUsed + event.name) }
+            }
             is StreamEvent.Status -> addAction(ActionItem.Kind.STATUS, event.text)
             is StreamEvent.Reasoning -> addAction(ActionItem.Kind.REASONING, event.text)
             is StreamEvent.Approval ->

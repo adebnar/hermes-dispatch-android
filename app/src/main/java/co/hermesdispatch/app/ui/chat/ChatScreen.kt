@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,6 +59,9 @@ fun ChatScreen(
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val speech = rememberSpeechController { transcript ->
+        input = listOf(input.trim(), transcript.trim()).filter { it.isNotEmpty() }.joinToString(" ")
+    }
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
@@ -81,6 +85,8 @@ fun ChatScreen(
             if (state.running) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
             if (state.artifacts.isNotEmpty()) ArtifactsStrip(state.artifacts)
+
+            if (state.toolsUsed.isNotEmpty()) ToolsRow(state.toolsUsed)
 
             // Chat thread (primary).
             LazyColumn(
@@ -110,6 +116,9 @@ fun ChatScreen(
                 value = input,
                 onValueChange = { input = it },
                 running = state.running,
+                voiceState = speech.state.value,
+                voicePartial = speech.partial.value,
+                onMic = speech.start,
                 onSend = { viewModel.send(input); input = "" },
                 onCancel = viewModel::cancel,
             )
@@ -174,21 +183,48 @@ private fun ActionsPane(actions: List<ActionItem>) {
 }
 
 @Composable
+private fun ToolsRow(tools: Set<String>) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(tools.toList(), key = { it }) { tool ->
+            AssistChip(onClick = {}, label = { Text(tool, maxLines = 1) })
+        }
+    }
+}
+
+@Composable
 private fun Composer(
     value: String,
     onValueChange: (String) -> Unit,
     running: Boolean,
+    voiceState: VoiceState,
+    voicePartial: String,
+    onMic: () -> Unit,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val listening = voiceState == VoiceState.LISTENING || voiceState == VoiceState.TRANSCRIBING
+    val display = when (voiceState) {
+        VoiceState.TRANSCRIBING -> voicePartial.ifBlank { "Transcribing…" }
+        VoiceState.LISTENING -> voicePartial.ifBlank { "Listening…" }
+        else -> value
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (voiceState != VoiceState.UNAVAILABLE) {
+            IconButton(onClick = onMic, enabled = !running && !listening) {
+                Icon(Icons.Filled.Mic, contentDescription = "Voice input")
+            }
+        }
         OutlinedTextField(
-            value = value,
+            value = display,
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
+            enabled = !listening,
             placeholder = { Text("Message your agent…") },
             maxLines = 4,
         )
@@ -198,7 +234,7 @@ private fun Composer(
                     Icon(Icons.Filled.Stop, contentDescription = "Stop")
                 }
             } else {
-                IconButton(onClick = onSend, enabled = value.isNotBlank()) {
+                IconButton(onClick = onSend, enabled = value.isNotBlank() && !listening) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
                 }
             }
