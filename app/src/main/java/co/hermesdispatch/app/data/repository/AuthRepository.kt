@@ -12,6 +12,8 @@ class AuthRepository @Inject constructor(
 ) {
     fun isPaired(): Boolean = settings.isPaired()
     fun activeProfile(): String? = settings.activeProfile()
+    fun bridgeUrl(): String? = settings.bridgeUrl()
+    fun pushEndpoint(): String? = settings.pushEndpoint()
 
     /** Persist the bridge URL, then authenticate. The session cookie is stored
      *  by the HTTP client's cookie jar on success. */

@@ -37,6 +37,9 @@ class ChatViewModel @Inject constructor(
     private var sessionId: String? =
         savedStateHandle.get<String>("sessionId")?.takeIf { it != NEW }
 
+    /** Optional prompt to prefill the composer (e.g. from a suggestion chip). */
+    val initialInput: String = savedStateHandle.get<String>("prompt").orEmpty()
+
     private var currentStreamId: String? = null
     private var streamJob: Job? = null
     private var nextId = 0L

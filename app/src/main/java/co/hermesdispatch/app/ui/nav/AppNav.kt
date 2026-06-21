@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,6 +28,7 @@ import co.hermesdispatch.app.ui.chat.ChatScreen
 import co.hermesdispatch.app.ui.chat.ChatViewModel
 import co.hermesdispatch.app.ui.pairing.PairingScreen
 import co.hermesdispatch.app.ui.scheduled.ScheduledScreen
+import co.hermesdispatch.app.ui.settings.SettingsScreen
 import co.hermesdispatch.app.ui.tasks.TasksScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -35,8 +37,12 @@ object Routes {
     const val PAIRING = "pairing"
     const val TASKS = "tasks"
     const val SCHEDULED = "scheduled"
-    const val CHAT = "chat" // chat/{sessionId}; sessionId == "new" starts a fresh task
-    fun chat(sessionId: String) = "$CHAT/$sessionId"
+    const val SETTINGS = "settings"
+    const val CHAT = "chat" // chat/{sessionId}?prompt=…; sessionId == "new" starts a fresh task
+    fun chat(sessionId: String, prompt: String? = null): String {
+        val base = "$CHAT/$sessionId"
+        return if (prompt.isNullOrBlank()) base else "$base?prompt=${android.net.Uri.encode(prompt)}"
+    }
 }
 
 @HiltViewModel
@@ -61,7 +67,9 @@ fun AppNav(
         }
     }
 
-    val showBars = currentRoute == Routes.TASKS || currentRoute == Routes.SCHEDULED
+    val showBars = currentRoute == Routes.TASKS ||
+        currentRoute == Routes.SCHEDULED ||
+        currentRoute == Routes.SETTINGS
 
     Scaffold(
         bottomBar = {
@@ -70,6 +78,7 @@ fun AppNav(
                     val tabs = listOf(
                         Triple(Routes.TASKS, "Tasks", Icons.AutoMirrored.Filled.ListAlt),
                         Triple(Routes.SCHEDULED, "Scheduled", Icons.Filled.Schedule),
+                        Triple(Routes.SETTINGS, "Settings", Icons.Filled.Settings),
                     )
                     tabs.forEach { (route, label, icon) ->
                         val selected = backStack?.destination?.hierarchy?.any { it.route == route } == true
@@ -105,13 +114,27 @@ fun AppNav(
             composable(Routes.TASKS) {
                 TasksScreen(
                     onTaskClick = { sessionId -> navController.navigate(Routes.chat(sessionId)) },
-                    onNewTask = { navController.navigate(Routes.chat(ChatViewModel.NEW)) },
+                    onNewTask = { prompt -> navController.navigate(Routes.chat(ChatViewModel.NEW, prompt)) },
                 )
             }
             composable(Routes.SCHEDULED) { ScheduledScreen() }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onSignedOut = {
+                    navController.navigate(Routes.PAIRING) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                })
+            }
             composable(
-                route = "${Routes.CHAT}/{sessionId}",
-                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                route = "${Routes.CHAT}/{sessionId}?prompt={prompt}",
+                arguments = listOf(
+                    navArgument("sessionId") { type = NavType.StringType },
+                    navArgument("prompt") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
             ) {
                 ChatScreen(onBack = { navController.popBackStack() })
             }

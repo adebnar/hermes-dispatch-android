@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import co.hermesdispatch.app.MainActivity
@@ -21,7 +20,7 @@ object NotificationHelper {
     private const val CHANNEL_DONE = "agent_done"
 
     fun ensureChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        // minSdk is 26 (O), so notification channels always exist.
         val mgr = context.getSystemService(NotificationManager::class.java)
         mgr.createNotificationChannel(
             NotificationChannel(CHANNEL_PROGRESS, "Agent progress", NotificationManager.IMPORTANCE_LOW),

@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application>
-        <!-- UnifiedPush callbacks (delivered by the user's distributor, e.g. ntfy). -->
+        <!-- UnifiedPush callbacks (delivered by the user's distributor, e.g. ntfy).
+             Must be exported so the distributor app can broadcast to it; the
+             intent actions are UnifiedPush-spec, not arbitrary. -->
         <receiver
             android:name=".push.UnifiedPushReceiver"
-            android:exported="true">
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
             <intent-filter>
                 <action android:name="org.unifiedpush.android.connector.MESSAGE" />
                 <action android:name="org.unifiedpush.android.connector.UNREGISTERED" />

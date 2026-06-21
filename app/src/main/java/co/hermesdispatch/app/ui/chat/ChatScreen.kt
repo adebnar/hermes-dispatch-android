@@ -56,7 +56,7 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var input by remember { mutableStateOf("") }
+    var input by remember { mutableStateOf(viewModel.initialInput) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val speech = rememberSpeechController { transcript ->

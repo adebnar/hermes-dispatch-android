@@ -69,9 +69,9 @@ Build the `oss` flavor (`./gradlew assembleOssDebug`) or install a release. Firs
 | 2 | Live chat + SSE streaming (split chat/actions) + pinned artifacts | ✅ |
 | 3 | Voice capture (on-device STT) + MCP/tools surfacing | ✅ |
 | 4 | Background push (UnifiedPush/ntfy) + lock-screen "live update" + deep-links | ✅ |
-| 5 | Suggested tasks, categories, artifact viewers, polish | ⏳ |
+| 5 | Settings + profile switcher, suggested tasks, pull-to-refresh, error/retry | ✅ |
 
-Deferred (already in the contract, additive later): file workspace, mid-run approvals UI, model picker.
+Deferred (already in the contract, additive later): categories grouping, artifact previews, file workspace, mid-run approvals UI, model picker, registering the push endpoint with the bridge, E2EE webpush.
 
 ## Contributing & security
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,31 +34,38 @@ import co.hermesdispatch.app.domain.Schedule
 @Composable
 fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
     val schedules by viewModel.schedules.collectAsStateWithLifecycle()
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
 
     Scaffold(topBar = { TopAppBar(title = { Text("Scheduled") }) }) { padding ->
-        if (schedules.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    "No scheduled tasks. Recurring jobs your agent classifies as cron will appear here.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(schedules, key = { it.id }) { schedule ->
-                    ScheduleCard(
-                        schedule = schedule,
-                        onTogglePause = { viewModel.togglePause(schedule) },
-                        onRunNow = { viewModel.runNow(schedule) },
-                        onDelete = { viewModel.delete(schedule) },
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        ) {
+            if (schedules.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        "No scheduled tasks. Recurring jobs your agent classifies as cron will appear here.",
+                        style = MaterialTheme.typography.bodyLarge,
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(schedules, key = { it.id }) { schedule ->
+                        ScheduleCard(
+                            schedule = schedule,
+                            onTogglePause = { viewModel.togglePause(schedule) },
+                            onRunNow = { viewModel.runNow(schedule) },
+                            onDelete = { viewModel.delete(schedule) },
+                        )
+                    }
                 }
             }
         }
