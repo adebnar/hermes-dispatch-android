@@ -68,7 +68,7 @@ Build the `oss` flavor (`./gradlew assembleOssDebug`) or install a release. Firs
 | 1 | Pairing + read-only Tasks/Scheduled + cron control | ✅ |
 | 2 | Live chat + SSE streaming (split chat/actions) + pinned artifacts | ✅ |
 | 3 | Voice capture (on-device STT) + MCP/tools surfacing | ✅ |
-| 4 | Background push (UnifiedPush) + lock-screen "live update" | ⏳ |
+| 4 | Background push (UnifiedPush/ntfy) + lock-screen "live update" + deep-links | ✅ |
 | 5 | Suggested tasks, categories, artifact viewers, polish | ⏳ |
 
 Deferred (already in the contract, additive later): file workspace, mid-run approvals UI, model picker.

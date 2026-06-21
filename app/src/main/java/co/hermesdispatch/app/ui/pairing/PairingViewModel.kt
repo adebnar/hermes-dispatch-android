@@ -3,6 +3,7 @@ package co.hermesdispatch.app.ui.pairing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.hermesdispatch.app.data.repository.AuthRepository
+import co.hermesdispatch.app.push.PushProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ data class PairingUiState(
 @HiltViewModel
 class PairingViewModel @Inject constructor(
     private val auth: AuthRepository,
+    private val push: PushProvider,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PairingUiState())
@@ -33,7 +35,11 @@ class PairingViewModel @Inject constructor(
                 password = password,
                 profile = profile.trim().ifBlank { null },
             ).fold(
-                onSuccess = { _state.value = PairingUiState(done = true) },
+                onSuccess = {
+                    // Best-effort: subscribe to push if a distributor (e.g. ntfy) is available.
+                    runCatching { push.register() }
+                    _state.value = PairingUiState(done = true)
+                },
                 onFailure = { _state.value = PairingUiState(error = it.message ?: "Connection failed") },
             )
         }

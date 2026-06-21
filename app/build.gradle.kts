@@ -102,6 +102,13 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.datastore.preferences)
 
+    // UnifiedPush (ntfy) — default push, OSS flavor only (no Google libraries).
+    // Exclude the JVM `tink` it pulls in; security-crypto already provides
+    // tink-android (same classes), and shipping both duplicates classes.
+    "ossImplementation"(libs.unifiedpush.connector) {
+        exclude(group = "com.google.crypto.tink", module = "tink")
+    }
+
     // FCM only in the `play` flavor — configured at runtime (no google-services.json).
     "playImplementation"(platform(libs.firebase.bom))
     "playImplementation"(libs.firebase.messaging)

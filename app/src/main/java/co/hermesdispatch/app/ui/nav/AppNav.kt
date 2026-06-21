@@ -45,10 +45,21 @@ class RootViewModel @Inject constructor(auth: AuthRepository) : ViewModel() {
 }
 
 @Composable
-fun AppNav(rootViewModel: RootViewModel = hiltViewModel()) {
+fun AppNav(
+    deepLinkSessionId: String? = null,
+    onDeepLinkHandled: () -> Unit = {},
+    rootViewModel: RootViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+
+    androidx.compose.runtime.LaunchedEffect(deepLinkSessionId) {
+        if (!deepLinkSessionId.isNullOrBlank() && rootViewModel.startDestination != Routes.PAIRING) {
+            navController.navigate(Routes.chat(deepLinkSessionId))
+            onDeepLinkHandled()
+        }
+    }
 
     val showBars = currentRoute == Routes.TASKS || currentRoute == Routes.SCHEDULED
 
