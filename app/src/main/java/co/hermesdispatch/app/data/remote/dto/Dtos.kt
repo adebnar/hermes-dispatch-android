@@ -48,3 +48,16 @@ data class StartTaskResponse(
 
 @Serializable
 data class SteerRequest(val message: String)
+
+@Serializable
+data class ProfileDto(
+    val name: String,
+    val model: String? = null,
+    @SerialName("is_default") val isDefault: Boolean = false,
+)
+
+@Serializable
+data class ProfilesResponse(
+    val profiles: List<ProfileDto> = emptyList(),
+    val active: String? = null,
+)

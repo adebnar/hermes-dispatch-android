@@ -2,6 +2,7 @@ package co.hermesdispatch.app.data.remote
 
 import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.remote.dto.McpServerDto
+import co.hermesdispatch.app.data.remote.dto.ProfilesResponse
 import co.hermesdispatch.app.data.remote.dto.ScheduleDto
 import co.hermesdispatch.app.data.remote.dto.StartTaskRequest
 import co.hermesdispatch.app.data.remote.dto.StartTaskResponse
@@ -59,6 +60,9 @@ class HermesApi @Inject constructor(
 
     suspend fun mcpServers(): List<McpServerDto> =
         client.get("${base()}/v1/mcp") { auth() }.body()
+
+    suspend fun profiles(): ProfilesResponse =
+        client.get("${base()}/v1/profiles") { auth() }.body()
 
     suspend fun startTask(req: StartTaskRequest): StartTaskResponse =
         client.post("${base()}/v1/tasks") {

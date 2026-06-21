@@ -33,5 +33,9 @@ class AuthRepository @Inject constructor(
 
     fun setProfile(profile: String?) = settings.setActiveProfile(profile)
 
+    /** Profile names available on the bridge, or empty on failure. */
+    suspend fun availableProfiles(): List<String> =
+        runCatching { api.profiles().profiles.map { it.name } }.getOrDefault(emptyList())
+
     fun signOut() = settings.clear()
 }

@@ -2,13 +2,16 @@ package co.hermesdispatch.app.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     onSignedOut: () -> Unit,
@@ -54,6 +57,17 @@ fun SettingsScreen(
                 "Switch which Hermes profile this app talks to.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (state.availableProfiles.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.availableProfiles.forEach { name ->
+                        FilterChip(
+                            selected = name == profile,
+                            onClick = { profile = name; viewModel.saveProfile(name) },
+                            label = { Text(name) },
+                        )
+                    }
+                }
+            }
             OutlinedTextField(
                 value = profile,
                 onValueChange = { profile = it },
