@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -105,6 +107,8 @@ fun ChatScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        // The composer handles its own bottom inset (nav bar + keyboard) below.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Task") },
@@ -116,7 +120,13 @@ fun ChatScreen(
             )
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
+        // navigationBarsPadding() then imePadding(): composer sits just above the
+        // nav bar when the keyboard is closed, and just above the keyboard when open
+        // (imePadding consumes the already-applied nav inset — no extra gap).
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .navigationBarsPadding().imePadding(),
+        ) {
             if (state.running) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
             if (state.artifacts.isNotEmpty()) ArtifactsStrip(state.artifacts)

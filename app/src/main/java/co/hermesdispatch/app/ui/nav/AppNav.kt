@@ -1,5 +1,6 @@
 package co.hermesdispatch.app.ui.nav
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -99,13 +100,14 @@ fun AppNav(
             }
         },
     ) { padding ->
-        // Only consume the bottom inset (for the nav bar). Each screen's own
-        // TopAppBar handles the status-bar inset — applying the full padding here
-        // would double the top inset and leave a large empty band at the top.
+        // Top inset is handled by each screen's own TopAppBar. The bottom inset
+        // (nav bar) is applied ONLY to the tabbed screens — the full-screen chat
+        // manages its own bottom inset (navigationBars + ime), so padding it here
+        // would double the gap above the keyboard / nav bar.
+        val tabModifier = Modifier.padding(bottom = padding.calculateBottomPadding())
         NavHost(
             navController = navController,
             startDestination = rootViewModel.startDestination,
-            modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
         ) {
             composable(Routes.PAIRING) {
                 PairingScreen(onPaired = {
@@ -115,18 +117,22 @@ fun AppNav(
                 })
             }
             composable(Routes.TASKS) {
-                TasksScreen(
-                    onTaskClick = { sessionId -> navController.navigate(Routes.chat(sessionId)) },
-                    onNewTask = { prompt -> navController.navigate(Routes.chat(ChatViewModel.NEW, prompt)) },
-                )
+                Box(tabModifier) {
+                    TasksScreen(
+                        onTaskClick = { sessionId -> navController.navigate(Routes.chat(sessionId)) },
+                        onNewTask = { prompt -> navController.navigate(Routes.chat(ChatViewModel.NEW, prompt)) },
+                    )
+                }
             }
-            composable(Routes.SCHEDULED) { ScheduledScreen() }
+            composable(Routes.SCHEDULED) { Box(tabModifier) { ScheduledScreen() } }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onSignedOut = {
-                    navController.navigate(Routes.PAIRING) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                })
+                Box(tabModifier) {
+                    SettingsScreen(onSignedOut = {
+                        navController.navigate(Routes.PAIRING) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    })
+                }
             }
             composable(
                 route = "${Routes.CHAT}/{sessionId}?prompt={prompt}",
