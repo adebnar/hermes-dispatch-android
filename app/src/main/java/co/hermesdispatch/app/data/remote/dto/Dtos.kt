@@ -51,6 +51,12 @@ data class StartTaskResponse(
 data class SteerRequest(val message: String)
 
 @Serializable
+data class ApproveRequest(val choice: String, val all: Boolean = false)
+
+@Serializable
+data class ClarifyRequest(val answer: String)
+
+@Serializable
 data class MessageDto(val role: String, val text: String)
 
 @Serializable

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -40,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -177,6 +179,61 @@ fun ChatScreen(
                 onCancel = viewModel::cancel,
             )
         }
+    }
+
+    state.pendingApproval?.let { ap ->
+        AlertDialog(
+            onDismissRequest = { viewModel.approve("deny") },
+            title = { Text("Approval needed") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (ap.description.isNotBlank()) Text(ap.description)
+                    if (ap.command.isNotBlank()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                ap.command,
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { viewModel.approve("once") }) { Text("Allow once") } },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { viewModel.approve("always") }) { Text("Always") }
+                    TextButton(onClick = { viewModel.approve("deny") }) { Text("Deny") }
+                }
+            },
+        )
+    }
+
+    state.pendingClarify?.let { question ->
+        var answer by remember(question) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Agent needs input") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(question)
+                    OutlinedTextField(
+                        value = answer,
+                        onValueChange = { answer = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.answerClarify(answer) },
+                    enabled = answer.isNotBlank(),
+                ) { Text("Send") }
+            },
+        )
     }
 }
 

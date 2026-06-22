@@ -46,4 +46,8 @@ class ChatRepository @Inject constructor(
     suspend fun cancel(streamId: String) = api.cancelTask(streamId)
 
     suspend fun steer(streamId: String, message: String) = api.steerTask(streamId, message)
+
+    suspend fun approve(streamId: String, choice: String) = api.approveTask(streamId, choice)
+
+    suspend fun clarify(streamId: String, answer: String) = api.clarifyTask(streamId, answer)
 }

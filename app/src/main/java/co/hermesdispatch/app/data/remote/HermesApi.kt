@@ -104,6 +104,22 @@ class HermesApi @Inject constructor(
         }
     }
 
+    suspend fun approveTask(streamId: String, choice: String) {
+        client.post("${base()}/v1/tasks/$streamId/approve") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.ApproveRequest(choice))
+        }
+    }
+
+    suspend fun clarifyTask(streamId: String, answer: String) {
+        client.post("${base()}/v1/tasks/$streamId/clarify") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.ClarifyRequest(answer))
+        }
+    }
+
     suspend fun scheduleAction(action: String, id: String) {
         client.post("${base()}/v1/schedules/$id/$action") { auth() }
     }

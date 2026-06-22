@@ -22,11 +22,15 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+data class ApprovalRequest(val command: String, val description: String)
+
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val actions: List<ActionItem> = emptyList(),
     val artifacts: List<Artifact> = emptyList(),
     val toolsUsed: Set<String> = emptySet(),
+    val pendingApproval: ApprovalRequest? = null,
+    val pendingClarify: String? = null,
     val running: Boolean = false,
     val error: String? = null,
 )
@@ -92,6 +96,18 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun approve(choice: String) {
+        val id = currentStreamId ?: return
+        _state.update { it.copy(pendingApproval = null) }
+        viewModelScope.launch { runCatching { repository.approve(id, choice) } }
+    }
+
+    fun answerClarify(text: String) {
+        val id = currentStreamId ?: return
+        _state.update { it.copy(pendingClarify = null) }
+        viewModelScope.launch { runCatching { repository.clarify(id, text) } }
+    }
+
     fun cancel() {
         val id = currentStreamId
         streamJob?.cancel()
@@ -111,9 +127,16 @@ class ChatViewModel @Inject constructor(
             }
             is StreamEvent.Status -> addAction(ActionItem.Kind.STATUS, event.text)
             is StreamEvent.Reasoning -> addAction(ActionItem.Kind.REASONING, event.text)
-            is StreamEvent.Approval ->
+            is StreamEvent.Approval -> {
                 addAction(ActionItem.Kind.STATUS, "Approval needed: ${event.command}")
-            is StreamEvent.Clarify -> addAction(ActionItem.Kind.STATUS, "Asked: ${event.question}")
+                _state.update {
+                    it.copy(pendingApproval = ApprovalRequest(event.command, event.description ?: ""))
+                }
+            }
+            is StreamEvent.Clarify -> {
+                addAction(ActionItem.Kind.STATUS, "Asked: ${event.question}")
+                _state.update { it.copy(pendingClarify = event.question) }
+            }
             is StreamEvent.Completed -> {
                 event.raw?.let { raw ->
                     harvestArtifactsFrom(raw)
