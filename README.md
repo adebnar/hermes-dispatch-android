@@ -128,8 +128,10 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 3 | Voice capture (on-device STT) + MCP/tools surfacing | ✅ |
 | 4 | Background push (UnifiedPush/ntfy) + lock-screen "live update" | ✅ |
 | 5 | Settings + profile switcher, suggested tasks, pull-to-refresh | ✅ |
+| 6 | Model picker, mid-run approvals/clarify, image previews, branded theme | ✅ |
+| 7 | In-app editing: rename tasks, edit & resend, edit schedules, edit connection | ✅ |
 
-Deferred (additive later): categories grouping, artifact previews, file workspace, mid-run approvals UI, model picker, server-side STT, E2EE webpush.
+Deferred (additive later): categories grouping, rich result/artifact cards, file workspace, server-side STT, persistent push registry, E2EE webpush, F-Droid/Play listings.
 
 ## Contributing & security
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).
