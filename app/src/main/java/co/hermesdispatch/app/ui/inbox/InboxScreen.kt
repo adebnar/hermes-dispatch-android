@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Unarchive
@@ -277,24 +278,39 @@ private fun InboxCard(
                     )
                 }
             }
+            // Passive status glyphs (not tap targets — alert/pin are in the menu).
+            if (item.alerting) {
+                Icon(
+                    Icons.Filled.NotificationsActive,
+                    contentDescription = "This job alerts you",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                )
+            }
             if (item.pinned) {
                 Icon(
                     Icons.Filled.PushPin,
                     contentDescription = "Pinned",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                )
-            }
-            IconButton(onClick = onToggleAlert) {
-                Icon(
-                    if (item.alerting) Icons.Filled.NotificationsActive else Icons.Outlined.Notifications,
-                    contentDescription = if (item.alerting) "Alerts on" else "Alerts off",
-                    tint = if (item.alerting) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp).padding(end = 8.dp),
                 )
             }
             Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (item.alerting) "Stop alerting this job" else "Alert me about this job") },
+                        leadingIcon = {
+                            Icon(
+                                if (item.alerting) Icons.Outlined.Notifications
+                                else Icons.Filled.NotificationsActive,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = { menuOpen = false; onToggleAlert() },
+                    )
                     DropdownMenuItem(
                         text = { Text(if (item.pinned) "Unpin" else "Pin") },
                         leadingIcon = {
