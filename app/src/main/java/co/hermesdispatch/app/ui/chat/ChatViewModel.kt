@@ -93,6 +93,19 @@ class ChatViewModel @Inject constructor(
     /** Rename is only meaningful once the task has a session id. */
     val canRename: Boolean get() = sessionId != null
 
+    /** Models available for the per-session model picker. */
+    suspend fun modelOptions(): List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto> =
+        runCatching { repository.models() }.getOrDefault(emptyList())
+
+    /**
+     * Hot-swap the model for this session by sending the agent's `/model`
+     * slash command (the dashboard supports per-session model switching this
+     * way; it applies to this conversation only, not the profile default).
+     */
+    fun changeModel(provider: String, model: String) {
+        send("/model $model --provider $provider")
+    }
+
     private var currentStreamId: String? = null
     private var streamJob: Job? = null
     private var nextId = 0L

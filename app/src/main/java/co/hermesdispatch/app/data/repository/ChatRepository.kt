@@ -53,4 +53,8 @@ class ChatRepository @Inject constructor(
 
     /** Server-side speech-to-text: upload recorded audio, get the transcript. */
     suspend fun transcribe(audio: ByteArray): String = api.transcribe(audio).text
+
+    /** Available models for the active profile (for the per-session model picker). */
+    suspend fun models(): List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto> =
+        api.models().models
 }

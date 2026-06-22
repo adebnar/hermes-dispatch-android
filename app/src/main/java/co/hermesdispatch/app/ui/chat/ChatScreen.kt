@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -103,6 +104,7 @@ fun ChatScreen(
     var attachedImage by remember { mutableStateOf<String?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var changingModel by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -152,11 +154,15 @@ fun ChatScreen(
                     }
                 },
                 actions = {
-                    if (viewModel.canRename) {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Change model") },
+                            onClick = { menuOpen = false; changingModel = true },
+                        )
+                        if (viewModel.canRename) {
                             DropdownMenuItem(
                                 text = { Text("Rename") },
                                 onClick = { menuOpen = false; renaming = true },
@@ -288,6 +294,37 @@ fun ChatScreen(
                     enabled = answer.isNotBlank(),
                 ) { Text("Send") }
             },
+        )
+    }
+
+    if (changingModel) {
+        var models by remember { mutableStateOf<List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto>>(emptyList()) }
+        LaunchedEffect(Unit) { models = viewModel.modelOptions() }
+        AlertDialog(
+            onDismissRequest = { changingModel = false },
+            title = { Text("Change model") },
+            text = {
+                if (models.isEmpty()) {
+                    Text("Loading models…")
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.heightIn(max = 360.dp),
+                    ) {
+                        items(models, key = { "${it.provider}/${it.model}" }) { opt ->
+                            androidx.compose.material3.ListItem(
+                                headlineContent = { Text(opt.model) },
+                                supportingContent = { Text(opt.provider) },
+                                modifier = Modifier.clickable {
+                                    viewModel.changeModel(opt.provider, opt.model)
+                                    changingModel = false
+                                },
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { changingModel = false }) { Text("Cancel") } },
         )
     }
 

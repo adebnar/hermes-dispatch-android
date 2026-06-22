@@ -55,8 +55,25 @@ class HermesApi @Inject constructor(
         client.get("${base()}/v1/auth/check") { auth() }.body<Map<String, Boolean>>()
     }
 
-    suspend fun tasks(): List<TaskDto> =
-        client.get("${base()}/v1/tasks") { auth() }.body()
+    suspend fun tasks(archived: String = "exclude"): List<TaskDto> =
+        client.get("${base()}/v1/tasks") {
+            auth()
+            parameter("archived", archived)
+        }.body()
+
+    suspend fun searchTasks(query: String): List<TaskDto> =
+        client.get("${base()}/v1/tasks/search") {
+            auth()
+            parameter("q", query)
+        }.body()
+
+    suspend fun archiveTask(sessionId: String, archived: Boolean) {
+        client.post("${base()}/v1/tasks/$sessionId/archive") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.ArchiveRequest(archived))
+        }
+    }
 
     suspend fun schedules(): List<ScheduleDto> =
         client.get("${base()}/v1/schedules") { auth() }.body()

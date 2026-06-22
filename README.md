@@ -11,7 +11,7 @@ Fire off tasks by voice or text, watch your self-hosted agent work in real time,
 The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
 ## Features
-- 📋 **Tasks** — history of what your agent has done, with live status; open one for the full conversation, **rename** it, or **long-press a sent message to edit & resend**.
+- 📋 **Tasks** — history of what your agent has done, with live status; **search** sessions, **swipe to archive** (with Undo), open one for the full conversation, **rename** it, **change its model**, or **long-press a sent message to edit & resend**.
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
 - 🗣️ **Voice or text** task creation (on-device speech-to-text).
 - 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
@@ -137,6 +137,7 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 9 | Inbox v2: result-only cards, swipe-archive / pin / delete (app-only), unread + failure alerts, opt-in redacted bug reports | ✅ |
 | 10 | Cron-side alert toggle (Scheduled tab) + custom alert sound (per-channel) | ✅ |
 | 11 | Active-profile shown on Tasks/Inbox/Scheduled; system notification-settings shortcut | ✅ |
+| 12 | Cron created under the active profile; session search + server-side archive; per-session model switch | ✅ |
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 

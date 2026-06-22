@@ -143,4 +143,7 @@ data class AlertsResponse(
 data class PushKeyRequest(val key: String = "")
 
 @Serializable
+data class ArchiveRequest(val archived: Boolean = true)
+
+@Serializable
 data class TranscribeResponse(val text: String = "")

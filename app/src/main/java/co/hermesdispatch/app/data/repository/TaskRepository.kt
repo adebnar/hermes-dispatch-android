@@ -5,11 +5,13 @@ import co.hermesdispatch.app.data.local.TaskEntity
 import co.hermesdispatch.app.data.local.TaskLabelDao
 import co.hermesdispatch.app.data.local.TaskLabelEntity
 import co.hermesdispatch.app.data.remote.HermesApi
+import co.hermesdispatch.app.data.remote.dto.TaskDto
 import co.hermesdispatch.app.domain.Task
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 @Singleton
@@ -57,4 +59,33 @@ class TaskRepository @Inject constructor(
     }
 
     suspend fun clearCache() = dao.clear()
+
+    /** Apply the user's local renames over a freshly-fetched (uncached) list. */
+    private suspend fun withLabels(dtos: List<TaskDto>): List<Task> {
+        val overrides = labelDao.observeAll().first().associate { it.sessionId to it.label }
+        return dtos.map {
+            Task(
+                id = it.id,
+                title = overrides[it.id]?.ifBlank { null } ?: it.title.ifBlank { "Untitled task" },
+                status = it.status,
+                model = it.model,
+                updatedAt = (it.updatedAt * 1000).toLong(),
+            )
+        }
+    }
+
+    /** Archived tasks (server-side flag), fetched on demand — not cached. */
+    suspend fun archivedTasks(): Result<List<Task>> =
+        runCatching { withLabels(api.tasks(archived = "only")) }
+
+    /** Full-text search across sessions (server-side). */
+    suspend fun search(query: String): Result<List<Task>> = runCatching {
+        if (query.isBlank()) emptyList() else withLabels(api.searchTasks(query.trim()))
+    }
+
+    /** Archive/unarchive a task server-side, then refresh the active cache. */
+    suspend fun setArchived(sessionId: String, archived: Boolean): Result<Unit> = runCatching {
+        api.archiveTask(sessionId, archived)
+        refresh()
+    }
 }
