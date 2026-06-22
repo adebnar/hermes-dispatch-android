@@ -114,12 +114,13 @@ fun ChatScreen(
 
             if (state.toolsUsed.isNotEmpty()) ToolsRow(state.toolsUsed)
 
-            // Chat thread (primary).
+            // Chat thread (primary). Bottom-aligned so a short conversation hugs
+            // the composer instead of leaving a large empty gap below.
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
             ) {
                 items(state.messages, key = { it.id }) { MessageBubble(it) }
             }
