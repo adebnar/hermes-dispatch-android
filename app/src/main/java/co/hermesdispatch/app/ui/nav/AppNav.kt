@@ -99,10 +99,13 @@ fun AppNav(
             }
         },
     ) { padding ->
+        // Only consume the bottom inset (for the nav bar). Each screen's own
+        // TopAppBar handles the status-bar inset — applying the full padding here
+        // would double the top inset and leave a large empty band at the top.
         NavHost(
             navController = navController,
             startDestination = rootViewModel.startDestination,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
         ) {
             composable(Routes.PAIRING) {
                 PairingScreen(onPaired = {
