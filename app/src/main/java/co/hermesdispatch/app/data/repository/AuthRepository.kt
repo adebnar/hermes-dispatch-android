@@ -69,6 +69,13 @@ class AuthRepository @Inject constructor(
     fun serverTranscription(): Boolean = settings.serverTranscription()
     fun setServerTranscription(on: Boolean) = settings.setServerTranscription(on)
 
+    fun bugReporting(): Boolean = settings.bugReporting()
+    fun setBugReporting(on: Boolean) = settings.setBugReporting(on)
+
+    /** Exact secret values a diagnostic report must mask before sharing. */
+    fun secretsToMask(): List<String> =
+        listOfNotNull(settings.bridgeToken(), settings.pushKey()).filter { it.isNotBlank() }
+
     fun encryptedPushEnabled(): Boolean = !settings.pushKey().isNullOrBlank()
 
     /**

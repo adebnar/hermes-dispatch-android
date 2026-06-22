@@ -30,11 +30,17 @@ data class InboxItem(
     val id: String,
     val jobId: String,
     val jobName: String,
+    val title: String = "",
     val status: String = "ok", // ok | failed | silent
     val createdAt: Long? = null,
     val snippet: String = "",
-    val alerting: Boolean = false,
-)
+    val alerting: Boolean = false, // per-job push bell
+    val pinned: Boolean = false,
+    val unread: Boolean = true,
+) {
+    /** What to show as the headline — the result's title, falling back to the job. */
+    val display: String get() = title.ifBlank { jobName }
+}
 
 /** A connected Hermes bridge + the active profile. */
 data class Account(

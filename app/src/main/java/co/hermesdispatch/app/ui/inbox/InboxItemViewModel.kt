@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 
 data class InboxItemUiState(
     val loading: Boolean = true,
-    val content: String = "",
+    val output: String = "",
+    val raw: String = "",
     val error: String? = null,
 )
 
@@ -33,7 +34,9 @@ class InboxItemViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repository.content(id)
-                .onSuccess { c -> _state.update { it.copy(loading = false, content = c) } }
+                .onSuccess { (output, raw) ->
+                    _state.update { it.copy(loading = false, output = output, raw = raw) }
+                }
                 .onFailure { e ->
                     _state.update { it.copy(loading = false, error = e.message ?: "Couldn't open item") }
                 }

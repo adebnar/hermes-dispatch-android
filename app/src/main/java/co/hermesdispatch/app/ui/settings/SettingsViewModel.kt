@@ -1,17 +1,23 @@
 package co.hermesdispatch.app.ui.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.hermesdispatch.app.data.repository.AuthRepository
+import co.hermesdispatch.app.data.repository.InboxRepository
 import co.hermesdispatch.app.data.repository.ScheduleRepository
 import co.hermesdispatch.app.data.repository.TaskRepository
+import co.hermesdispatch.app.diag.DiagnosticReporter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SettingsUiState(
     val bridgeUrl: String = "",
@@ -27,6 +33,10 @@ data class SettingsUiState(
     val connectionSaved: Boolean = false,
     val serverStt: Boolean = false,
     val encryptedPush: Boolean = false,
+    val alertOnFailures: Boolean = false,
+    val bugReporting: Boolean = false,
+    val reportPreview: String? = null,
+    val preparingReport: Boolean = false,
     val signedOut: Boolean = false,
 )
 
@@ -35,6 +45,8 @@ class SettingsViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val tasks: TaskRepository,
     private val schedules: ScheduleRepository,
+    private val inbox: InboxRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(snapshot())
@@ -43,6 +55,9 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _state.update { it.copy(availableProfiles = auth.availableProfiles()) }
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(alertOnFailures = inbox.alertOnFailures()) }
         }
         viewModelScope.launch {
             auth.pushInfo()?.let { p ->
@@ -76,7 +91,26 @@ class SettingsViewModel @Inject constructor(
         pushConfigured = !auth.pushEndpoint().isNullOrBlank(),
         serverStt = auth.serverTranscription(),
         encryptedPush = auth.encryptedPushEnabled(),
+        bugReporting = auth.bugReporting(),
     )
+
+    fun setBugReporting(on: Boolean) {
+        auth.setBugReporting(on)
+        _state.update { it.copy(bugReporting = on) }
+    }
+
+    /** Collect + redact a diagnostic report off the main thread, then show a preview. */
+    fun prepareReport() {
+        _state.update { it.copy(preparingReport = true) }
+        viewModelScope.launch {
+            val report = withContext(Dispatchers.IO) {
+                DiagnosticReporter.build(appContext, auth.secretsToMask())
+            }
+            _state.update { it.copy(preparingReport = false, reportPreview = report) }
+        }
+    }
+
+    fun dismissReport() = _state.update { it.copy(reportPreview = null) }
 
     fun setServerStt(on: Boolean) {
         auth.setServerTranscription(on)
@@ -89,6 +123,15 @@ class SettingsViewModel @Inject constructor(
             auth.setEncryptedPush(on).onFailure {
                 _state.update { s -> s.copy(encryptedPush = auth.encryptedPushEnabled()) }
             }
+        }
+    }
+
+    fun setAlertOnFailures(on: Boolean) {
+        _state.update { it.copy(alertOnFailures = on) } // optimistic
+        viewModelScope.launch {
+            inbox.setAlertOnFailures(on)
+                .onSuccess { confirmed -> _state.update { it.copy(alertOnFailures = confirmed) } }
+                .onFailure { _state.update { it.copy(alertOnFailures = inbox.alertOnFailures()) } }
         }
     }
 

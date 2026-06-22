@@ -15,8 +15,9 @@ The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https:
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
 - 🗣️ **Voice or text** task creation (on-device speech-to-text).
 - 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
-- 📥 **Inbox** — read cron jobs that "deliver to this desktop": the saved-to-disk markdown reports show up here, rendered and readable, with a per-job **bell** to get a push when a new one lands.
+- 📥 **Inbox** — cron jobs that "deliver to this desktop" show up as clean **result** cards (just the agent's output, rendered). **Swipe to archive**, **long-press to pin/delete** (app-only — the files on disk are never touched), unread dots, and a per-job **bell** plus a global "alert on failures" so only what you care about buzzes.
 - 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required. Optional **end-to-end encryption** so the relay only sees ciphertext.
+- 🐞 **Bug reporting** (opt-in) — capture the app's own logs into a **redacted** diagnostic report (secrets/keys/tokens stripped), review it, and share as a file.
 - 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs, tasks, and the Inbox scope to the selected one.
 - 🤖 **Model picker**, **editable connection** (Bridge URL / token), and an optional **server-side transcription** toggle in Settings.
 - 🔗 **Rich result cards** — Sheets/Docs/Drive links the agent returns render as tappable cards; tasks are grouped by recency.
@@ -133,6 +134,7 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 6 | Model picker, mid-run approvals/clarify, image previews, branded theme | ✅ |
 | 7 | In-app editing: rename tasks, edit & resend, edit schedules, edit connection | ✅ |
 | 8 | Inbox (local cron deliverables) + alerts, rich result cards, task grouping, server-side STT, E2EE push, persistent push registry | ✅ |
+| 9 | Inbox v2: result-only cards, swipe-archive / pin / delete (app-only), unread + failure alerts, opt-in redacted bug reports | ✅ |
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 

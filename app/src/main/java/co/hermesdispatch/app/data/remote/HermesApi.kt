@@ -150,11 +150,14 @@ class HermesApi @Inject constructor(
     suspend fun inboxAlerts(): co.hermesdispatch.app.data.remote.dto.AlertsResponse =
         client.get("${base()}/v1/inbox/alerts") { auth() }.body()
 
-    suspend fun setInboxAlerts(jobIds: List<String>): co.hermesdispatch.app.data.remote.dto.AlertsResponse =
+    suspend fun setInboxAlerts(
+        jobIds: List<String>,
+        alertOnFailures: Boolean? = null,
+    ): co.hermesdispatch.app.data.remote.dto.AlertsResponse =
         client.put("${base()}/v1/inbox/alerts") {
             contentType(ContentType.Application.Json)
             auth()
-            setBody(co.hermesdispatch.app.data.remote.dto.AlertsRequest(jobIds))
+            setBody(co.hermesdispatch.app.data.remote.dto.AlertsRequest(jobIds, alertOnFailures))
         }.body()
 
     suspend fun setPushKey(key: String) {

@@ -42,6 +42,18 @@ interface TaskLabelDao {
 }
 
 @Dao
+interface InboxStateDao {
+    @Query("SELECT * FROM inbox_item_state")
+    fun observeAll(): Flow<List<InboxItemStateEntity>>
+
+    @Query("SELECT * FROM inbox_item_state WHERE id = :id")
+    suspend fun get(id: String): InboxItemStateEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(state: InboxItemStateEntity)
+}
+
+@Dao
 interface ScheduleDao {
     @Query("SELECT * FROM schedules ORDER BY name")
     fun observeAll(): Flow<List<ScheduleEntity>>

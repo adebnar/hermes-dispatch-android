@@ -32,3 +32,17 @@ data class TaskLabelEntity(
     @PrimaryKey val sessionId: String,
     val label: String,
 )
+
+/**
+ * App-local triage state for an Inbox item, keyed on its stable id
+ * (`{profile}/{job}/{file}`). The underlying .md on disk is never touched —
+ * archive/delete only affect what the app shows.
+ */
+@Entity(tableName = "inbox_item_state")
+data class InboxItemStateEntity(
+    @PrimaryKey val id: String,
+    val pinned: Boolean = false,
+    val archived: Boolean = false,
+    val deleted: Boolean = false,
+    val read: Boolean = false,
+)

@@ -3,6 +3,7 @@ package co.hermesdispatch.app.di
 import android.content.Context
 import androidx.room.Room
 import co.hermesdispatch.app.data.local.AppDatabase
+import co.hermesdispatch.app.data.local.InboxStateDao
 import co.hermesdispatch.app.data.local.ScheduleDao
 import co.hermesdispatch.app.data.local.TaskDao
 import co.hermesdispatch.app.data.local.TaskLabelDao
@@ -32,4 +33,7 @@ object DatabaseModule {
 
     @Provides
     fun provideTaskLabelDao(db: AppDatabase): TaskLabelDao = db.taskLabelDao()
+
+    @Provides
+    fun provideInboxStateDao(db: AppDatabase): InboxStateDao = db.inboxStateDao()
 }

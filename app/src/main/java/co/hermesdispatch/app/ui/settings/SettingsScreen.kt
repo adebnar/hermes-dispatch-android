@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -168,6 +172,13 @@ fun SettingsScreen(
 
             Text("Preferences", style = MaterialTheme.typography.titleMedium)
             SettingSwitchRow(
+                title = "Alert on failed runs",
+                subtitle = "Get a push when any scheduled job fails (once per failing streak), " +
+                    "even without a per-job bell.",
+                checked = state.alertOnFailures,
+                onCheckedChange = viewModel::setAlertOnFailures,
+            )
+            SettingSwitchRow(
                 title = "Server transcription",
                 subtitle = "Send voice to the bridge for speech-to-text instead of using on-device.",
                 checked = state.serverStt,
@@ -180,6 +191,20 @@ fun SettingsScreen(
                 checked = state.encryptedPush,
                 onCheckedChange = viewModel::setEncryptedPush,
             )
+            SettingSwitchRow(
+                title = "Bug reporting",
+                subtitle = "Capture this app's own logs so you can share a diagnostic report. " +
+                    "Secrets/keys are redacted, and you review it before sharing.",
+                checked = state.bugReporting,
+                onCheckedChange = viewModel::setBugReporting,
+            )
+            if (state.bugReporting) {
+                OutlinedButton(
+                    onClick = viewModel::prepareReport,
+                    enabled = !state.preparingReport,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(if (state.preparingReport) "Collecting…" else "Share diagnostic report") }
+            }
 
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()
@@ -188,6 +213,44 @@ fun SettingsScreen(
                 Text("Sign out")
             }
         }
+    }
+
+    val context = LocalContext.current
+    state.reportPreview?.let { report ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissReport,
+            title = { Text("Diagnostic report") },
+            text = {
+                Column {
+                    Text(
+                        "Review the redacted report below, then share it. Nothing is sent automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        report,
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        modifier = Modifier
+                            .heightIn(max = 320.dp)
+                            .verticalScroll(rememberScrollState()),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val uri = co.hermesdispatch.app.diag.DiagnosticReporter.writeShareFile(context, report)
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        putExtra(android.content.Intent.EXTRA_SUBJECT, "Hermes Dispatch diagnostic report")
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, "Share report"))
+                    viewModel.dismissReport()
+                }) { Text("Share") }
+            },
+            dismissButton = { TextButton(onClick = viewModel::dismissReport) { Text("Close") } },
+        )
     }
 }
 

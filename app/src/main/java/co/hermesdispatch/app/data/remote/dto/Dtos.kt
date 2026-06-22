@@ -105,6 +105,7 @@ data class InboxItemDto(
     val profile: String = "",
     @SerialName("job_id") val jobId: String = "",
     @SerialName("job_name") val jobName: String = "",
+    val title: String = "",
     val status: String = "ok",
     @SerialName("created_at") val createdAt: Double? = null,
     val size: Int = 0,
@@ -117,18 +118,26 @@ data class InboxContentDto(
     val profile: String = "",
     @SerialName("job_id") val jobId: String = "",
     @SerialName("job_name") val jobName: String = "",
+    val title: String = "",
     val status: String = "ok",
     @SerialName("created_at") val createdAt: Double? = null,
     val size: Int = 0,
     val snippet: String = "",
+    val output: String = "",
     val content: String = "",
 )
 
 @Serializable
-data class AlertsRequest(@SerialName("job_ids") val jobIds: List<String> = emptyList())
+data class AlertsRequest(
+    @SerialName("job_ids") val jobIds: List<String> = emptyList(),
+    @SerialName("alert_on_failures") val alertOnFailures: Boolean? = null,
+)
 
 @Serializable
-data class AlertsResponse(@SerialName("job_ids") val jobIds: List<String> = emptyList())
+data class AlertsResponse(
+    @SerialName("job_ids") val jobIds: List<String> = emptyList(),
+    @SerialName("alert_on_failures") val alertOnFailures: Boolean = false,
+)
 
 @Serializable
 data class PushKeyRequest(val key: String = "")

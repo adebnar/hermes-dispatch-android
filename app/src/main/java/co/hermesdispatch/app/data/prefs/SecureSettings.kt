@@ -42,12 +42,16 @@ class SecureSettings @Inject constructor(
     /** Base64 AES-256 key used to E2EE-encrypt push payloads, or null if off. */
     fun pushKey(): String? = prefs.getString(KEY_PUSH_KEY, null)
 
+    /** Whether opt-in diagnostic log capture is enabled. */
+    fun bugReporting(): Boolean = prefs.getBoolean(KEY_BUG_REPORTING, false)
+
     fun setBridgeUrl(url: String?) = prefs.edit().putString(KEY_BRIDGE_URL, url).apply()
     fun setBridgeToken(token: String?) = prefs.edit().putString(KEY_BRIDGE_TOKEN, token).apply()
     fun setActiveProfile(profile: String?) = prefs.edit().putString(KEY_PROFILE, profile).apply()
     fun setPushEndpoint(endpoint: String?) = prefs.edit().putString(KEY_PUSH_ENDPOINT, endpoint).apply()
     fun setServerTranscription(on: Boolean) = prefs.edit().putBoolean(KEY_SERVER_STT, on).apply()
     fun setPushKey(key: String?) = prefs.edit().putString(KEY_PUSH_KEY, key).apply()
+    fun setBugReporting(on: Boolean) = prefs.edit().putBoolean(KEY_BUG_REPORTING, on).apply()
 
     fun clear() = prefs.edit().clear().apply()
 
@@ -58,5 +62,6 @@ class SecureSettings @Inject constructor(
         const val KEY_PUSH_ENDPOINT = "push_endpoint"
         const val KEY_SERVER_STT = "server_transcription"
         const val KEY_PUSH_KEY = "push_key"
+        const val KEY_BUG_REPORTING = "bug_reporting"
     }
 }
