@@ -22,6 +22,9 @@ data class SettingsUiState(
     val pushConfigured: Boolean = false,
     val pushTopic: String = "",
     val pushBaseUrl: String = "",
+    val savingConnection: Boolean = false,
+    val connectionError: String? = null,
+    val connectionSaved: Boolean = false,
     val signedOut: Boolean = false,
 )
 
@@ -70,6 +73,34 @@ class SettingsViewModel @Inject constructor(
         profile = auth.activeProfile().orEmpty(),
         pushConfigured = !auth.pushEndpoint().isNullOrBlank(),
     )
+
+    /** Persist + verify a new Bridge URL / token. Blank token keeps the old one. */
+    fun saveConnection(url: String, token: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(savingConnection = true, connectionError = null, connectionSaved = false) }
+            val result = auth.updateConnection(url.trim(), token)
+            result
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            savingConnection = false,
+                            connectionSaved = true,
+                            bridgeUrl = auth.bridgeUrl().orEmpty(),
+                        )
+                    }
+                    // Re-pull everything against the (possibly new) bridge.
+                    tasks.clearCache(); schedules.clearCache()
+                    tasks.refresh(); schedules.refresh()
+                }
+                .onFailure { e ->
+                    _state.update {
+                        it.copy(savingConnection = false, connectionError = e.message ?: "Couldn't connect")
+                    }
+                }
+        }
+    }
+
+    fun ackConnectionSaved() = _state.update { it.copy(connectionSaved = false) }
 
     fun saveProfile(profile: String) {
         auth.setProfile(profile.trim().ifBlank { null })

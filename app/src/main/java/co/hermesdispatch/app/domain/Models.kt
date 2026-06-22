@@ -18,6 +18,7 @@ data class Schedule(
     val id: String,
     val name: String,
     val cronExpr: String,
+    val prompt: String = "",
     val paused: Boolean = false,
     val nextRun: Long? = null,
     val lastRun: Long? = null,

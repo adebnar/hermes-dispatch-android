@@ -19,9 +19,17 @@ data class ScheduleDto(
     val id: String,
     val name: String = "",
     val cron: String = "",
+    val prompt: String = "",
     val paused: Boolean = false,
     @SerialName("next_run") val nextRun: Double? = null,
     @SerialName("last_run") val lastRun: Double? = null,
+)
+
+@Serializable
+data class ScheduleUpdateRequest(
+    val name: String? = null,
+    val prompt: String? = null,
+    val schedule: String? = null,
 )
 
 @Serializable

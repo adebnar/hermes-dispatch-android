@@ -11,12 +11,13 @@ Fire off tasks by voice or text, watch your self-hosted agent work in real time,
 The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
 ## Features
-- 📋 **Tasks** — history of what your agent has done, with live status.
-- ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete.
+- 📋 **Tasks** — history of what your agent has done, with live status; open one for the full conversation, **rename** it, or **long-press a sent message to edit & resend**.
+- ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
 - 🗣️ **Voice or text** task creation (on-device speech-to-text).
-- 🔴 **Live execution** — stream the agent's text + tool-use as it happens.
+- 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
 - 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required.
 - 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs and the task list scope to the selected one.
+- 🤖 **Model picker** and **editable connection** (Bridge URL / token) in Settings.
 
 ---
 

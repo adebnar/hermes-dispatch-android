@@ -20,6 +20,7 @@ class ScheduleRepository @Inject constructor(
                 id = it.id,
                 name = it.name,
                 cronExpr = it.cronExpr,
+                prompt = it.prompt,
                 paused = it.paused,
                 nextRun = it.nextRun,
                 lastRun = it.lastRun,
@@ -33,6 +34,7 @@ class ScheduleRepository @Inject constructor(
                 id = it.id,
                 name = it.name.ifBlank { "Scheduled task" },
                 cronExpr = it.cron,
+                prompt = it.prompt,
                 paused = it.paused,
                 nextRun = it.nextRun?.let { ts -> (ts * 1000).toLong() },
                 lastRun = it.lastRun?.let { ts -> (ts * 1000).toLong() },
@@ -51,6 +53,24 @@ class ScheduleRepository @Inject constructor(
     suspend fun runNow(id: String): Result<Unit> = runCatching { api.scheduleAction("run", id) }
     suspend fun delete(id: String): Result<Unit> = runCatching {
         api.scheduleAction("delete", id)
+        refresh()
+    }
+
+    /** Edit a cron job. Only non-null fields are changed on the bridge. */
+    suspend fun update(
+        id: String,
+        name: String?,
+        prompt: String?,
+        schedule: String?,
+    ): Result<Unit> = runCatching {
+        api.updateSchedule(
+            id,
+            co.hermesdispatch.app.data.remote.dto.ScheduleUpdateRequest(
+                name = name?.trim()?.ifBlank { null },
+                prompt = prompt?.trim()?.ifBlank { null },
+                schedule = schedule?.trim()?.ifBlank { null },
+            ),
+        )
         refresh()
     }
 }

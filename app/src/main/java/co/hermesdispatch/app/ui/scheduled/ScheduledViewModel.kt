@@ -37,4 +37,9 @@ class ScheduledViewModel @Inject constructor(
     fun runNow(schedule: Schedule) = viewModelScope.launch { repository.runNow(schedule.id) }
 
     fun delete(schedule: Schedule) = viewModelScope.launch { repository.delete(schedule.id) }
+
+    fun update(schedule: Schedule, name: String, prompt: String, cron: String) =
+        viewModelScope.launch {
+            repository.update(schedule.id, name = name, prompt = prompt, schedule = cron)
+        }
 }

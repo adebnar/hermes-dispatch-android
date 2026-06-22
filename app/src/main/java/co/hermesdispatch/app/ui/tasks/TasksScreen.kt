@@ -54,7 +54,7 @@ private val SUGGESTIONS = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
-    onTaskClick: (String) -> Unit,
+    onTaskClick: (String, String) -> Unit,
     onNewTask: (String?) -> Unit,
     viewModel: TasksViewModel = hiltViewModel(),
 ) {
@@ -102,7 +102,7 @@ fun TasksScreen(
                     }
                 } else {
                     items(tasks, key = { it.id }) { task ->
-                        TaskCard(task, onClick = { onTaskClick(task.id) })
+                        TaskCard(task, onClick = { onTaskClick(task.id, task.title) })
                     }
                 }
             }

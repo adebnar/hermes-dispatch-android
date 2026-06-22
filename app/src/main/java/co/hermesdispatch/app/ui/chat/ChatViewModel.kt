@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.hermesdispatch.app.data.remote.sse.StreamEvent
 import co.hermesdispatch.app.data.repository.ChatRepository
+import co.hermesdispatch.app.data.repository.TaskRepository
 import co.hermesdispatch.app.domain.ActionItem
 import co.hermesdispatch.app.domain.Artifact
 import co.hermesdispatch.app.domain.Artifacts
@@ -38,6 +39,7 @@ data class ChatUiState(
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val tasks: TaskRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -48,8 +50,15 @@ class ChatViewModel @Inject constructor(
     /** Optional prompt to prefill the composer (e.g. from a suggestion chip). */
     val initialInput: String = savedStateHandle.get<String>("prompt").orEmpty()
 
+    /** Task title for the header when opening an existing task. */
+    val initialTitle: String = savedStateHandle.get<String>("title").orEmpty()
+
+    /** Header title — starts from the nav arg, follows any local rename live. */
+    private val _title = MutableStateFlow(initialTitle)
+    val title: StateFlow<String> = _title.asStateFlow()
+
     init {
-        // Opening an existing task: load its conversation history.
+        // Opening an existing task: load its conversation history + any rename.
         val sid = sessionId
         if (sid != null) {
             viewModelScope.launch {
@@ -57,8 +66,23 @@ class ChatViewModel @Inject constructor(
                     appendMessage(role, text)
                 }
             }
+            viewModelScope.launch {
+                tasks.observeLabel(sid).collect { label ->
+                    _title.value = label?.ifBlank { null } ?: initialTitle
+                }
+            }
         }
     }
+
+    /** Give this task a custom display name (persisted locally). */
+    fun rename(text: String) {
+        val sid = sessionId ?: return
+        _title.value = text.trim().ifBlank { initialTitle }  // optimistic
+        viewModelScope.launch { tasks.setLabel(sid, text) }
+    }
+
+    /** Rename is only meaningful once the task has a session id. */
+    val canRename: Boolean get() = sessionId != null
 
     private var currentStreamId: String? = null
     private var streamJob: Job? = null

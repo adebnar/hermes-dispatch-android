@@ -3,7 +3,9 @@ package co.hermesdispatch.app.ui.chat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,10 +29,13 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -80,9 +85,13 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val title by viewModel.title.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var input by remember { mutableStateOf(viewModel.initialInput) }
     var attachedImage by remember { mutableStateOf<String?>(null) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    var editingMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val speech = rememberSpeechController { transcript ->
@@ -115,10 +124,29 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = { Text("Task") },
+                title = {
+                    Text(
+                        title.ifBlank { "New task" },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (viewModel.canRename) {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                onClick = { menuOpen = false; renaming = true },
+                            )
+                        }
                     }
                 },
             )
@@ -145,7 +173,16 @@ fun ChatScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
             ) {
-                items(state.messages, key = { it.id }) { MessageBubble(it) }
+                items(state.messages, key = { it.id }) { msg ->
+                    MessageBubble(
+                        message = msg,
+                        onEdit = if (msg.role == ChatMessage.Role.USER) {
+                            { editingMessage = msg.text }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
 
             // Live "actions" pane (the split): what the agent is doing.
@@ -237,6 +274,54 @@ fun ChatScreen(
             },
         )
     }
+
+    if (renaming) {
+        var name by remember { mutableStateOf(title) }
+        AlertDialog(
+            onDismissRequest = { renaming = false },
+            title = { Text("Rename task") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.rename(name); renaming = false }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
+        )
+    }
+
+    editingMessage?.let { original ->
+        var edited by remember(original) { mutableStateOf(original) }
+        AlertDialog(
+            onDismissRequest = { editingMessage = null },
+            title = { Text("Edit & resend") },
+            text = {
+                OutlinedTextField(
+                    value = edited,
+                    onValueChange = { edited = it },
+                    label = { Text("Message") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.send(edited)
+                        input = ""
+                        editingMessage = null
+                    },
+                    enabled = edited.isNotBlank() && !state.running,
+                ) { Text("Send") }
+            },
+            dismissButton = { TextButton(onClick = { editingMessage = null }) { Text("Cancel") } },
+        )
+    }
 }
 
 @Composable
@@ -261,8 +346,9 @@ private fun ArtifactsStrip(artifacts: List<Artifact>) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun MessageBubble(message: ChatMessage, onEdit: (() -> Unit)? = null) {
     val isUser = message.role == ChatMessage.Role.USER
     val bg = if (isUser) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceVariant
@@ -270,11 +356,16 @@ private fun MessageBubble(message: ChatMessage) {
     val content = remember(message.text, linkColor) {
         linkify(message.text.ifEmpty { "…" }, linkColor)
     }
+    val bubbleModifier = if (onEdit != null) {
+        Modifier.fillMaxWidth(0.9f).combinedClickable(onClick = {}, onLongClick = onEdit)
+    } else {
+        Modifier.fillMaxWidth(0.9f)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
-        Surface(color = bg, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
+        Surface(color = bg, shape = RoundedCornerShape(16.dp), modifier = bubbleModifier) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -296,9 +387,14 @@ private fun MessageBubble(message: ChatMessage) {
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
-                // Selectable text with tappable links (open in the relevant app / browser).
-                SelectionContainer {
+                // Tappable links open in the relevant app / browser. User bubbles
+                // skip text selection so a long-press edits the message instead.
+                if (onEdit != null) {
                     Text(content, style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    SelectionContainer {
+                        Text(content, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }

@@ -5,6 +5,7 @@ import androidx.room.Room
 import co.hermesdispatch.app.data.local.AppDatabase
 import co.hermesdispatch.app.data.local.ScheduleDao
 import co.hermesdispatch.app.data.local.TaskDao
+import co.hermesdispatch.app.data.local.TaskLabelDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,4 +29,7 @@ object DatabaseModule {
 
     @Provides
     fun provideScheduleDao(db: AppDatabase): ScheduleDao = db.scheduleDao()
+
+    @Provides
+    fun provideTaskLabelDao(db: AppDatabase): TaskLabelDao = db.taskLabelDao()
 }

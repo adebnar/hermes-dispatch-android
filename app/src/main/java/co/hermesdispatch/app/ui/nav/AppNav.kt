@@ -39,10 +39,13 @@ object Routes {
     const val TASKS = "tasks"
     const val SCHEDULED = "scheduled"
     const val SETTINGS = "settings"
-    const val CHAT = "chat" // chat/{sessionId}?prompt=…; sessionId == "new" starts a fresh task
-    fun chat(sessionId: String, prompt: String? = null): String {
-        val base = "$CHAT/$sessionId"
-        return if (prompt.isNullOrBlank()) base else "$base?prompt=${android.net.Uri.encode(prompt)}"
+    const val CHAT = "chat" // chat/{sessionId}?prompt=…&title=…; sessionId == "new" starts fresh
+    fun chat(sessionId: String, prompt: String? = null, title: String? = null): String {
+        val params = buildList {
+            if (!prompt.isNullOrBlank()) add("prompt=${android.net.Uri.encode(prompt)}")
+            if (!title.isNullOrBlank()) add("title=${android.net.Uri.encode(title)}")
+        }
+        return if (params.isEmpty()) "$CHAT/$sessionId" else "$CHAT/$sessionId?${params.joinToString("&")}"
     }
 }
 
@@ -119,7 +122,7 @@ fun AppNav(
             composable(Routes.TASKS) {
                 Box(tabModifier) {
                     TasksScreen(
-                        onTaskClick = { sessionId -> navController.navigate(Routes.chat(sessionId)) },
+                        onTaskClick = { id, title -> navController.navigate(Routes.chat(id, title = title)) },
                         onNewTask = { prompt -> navController.navigate(Routes.chat(ChatViewModel.NEW, prompt)) },
                     )
                 }
@@ -135,10 +138,15 @@ fun AppNav(
                 }
             }
             composable(
-                route = "${Routes.CHAT}/{sessionId}?prompt={prompt}",
+                route = "${Routes.CHAT}/{sessionId}?prompt={prompt}&title={title}",
                 arguments = listOf(
                     navArgument("sessionId") { type = NavType.StringType },
                     navArgument("prompt") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("title") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null

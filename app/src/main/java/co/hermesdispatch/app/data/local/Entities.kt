@@ -17,7 +17,18 @@ data class ScheduleEntity(
     @PrimaryKey val id: String,
     val name: String,
     val cronExpr: String,
+    val prompt: String = "",
     val paused: Boolean,
     val nextRun: Long?,
     val lastRun: Long?,
+)
+
+/**
+ * A user-chosen display name for a task, kept in its own table so it survives
+ * the destructive [TaskDao.replaceAll] that re-syncs tasks from the bridge.
+ */
+@Entity(tableName = "task_labels")
+data class TaskLabelEntity(
+    @PrimaryKey val sessionId: String,
+    val label: String,
 )

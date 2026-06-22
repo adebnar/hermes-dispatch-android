@@ -3,6 +3,8 @@ package co.hermesdispatch.app.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,15 +45,52 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var profile by remember(state.profile) { mutableStateOf(state.profile) }
+    var bridgeUrlField by remember(state.bridgeUrl) { mutableStateOf(state.bridgeUrl) }
+    var tokenField by remember { mutableStateOf("") }
 
     LaunchedEffect(state.signedOut) { if (state.signedOut) onSignedOut() }
+    LaunchedEffect(state.connectionSaved) {
+        if (state.connectionSaved) { tokenField = ""; viewModel.ackConnectionSaved() }
+    }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            LabeledValue("Bridge", state.bridgeUrl.ifBlank { "—" })
+            Text("Connection", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "The Hermes Dispatch bridge this app talks to.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedTextField(
+                value = bridgeUrlField,
+                onValueChange = { bridgeUrlField = it },
+                label = { Text("Bridge URL") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = tokenField,
+                onValueChange = { tokenField = it },
+                label = { Text("Bridge token") },
+                placeholder = { Text("Leave blank to keep current") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            state.connectionError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            Button(
+                onClick = { viewModel.saveConnection(bridgeUrlField, tokenField) },
+                enabled = !state.savingConnection &&
+                    bridgeUrlField.isNotBlank() &&
+                    (bridgeUrlField != state.bridgeUrl || tokenField.isNotBlank()),
+            ) { Text(if (state.savingConnection) "Connecting…" else "Save connection") }
+
+            HorizontalDivider()
 
             Text("Lock-screen alerts", style = MaterialTheme.typography.titleMedium)
             if (state.pushConfigured && state.pushTopic.isNotBlank()) {

@@ -27,6 +27,21 @@ interface TaskDao {
 }
 
 @Dao
+interface TaskLabelDao {
+    @Query("SELECT * FROM task_labels")
+    fun observeAll(): Flow<List<TaskLabelEntity>>
+
+    @Query("SELECT label FROM task_labels WHERE sessionId = :sessionId")
+    fun observeLabel(sessionId: String): Flow<String?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(label: TaskLabelEntity)
+
+    @Query("DELETE FROM task_labels WHERE sessionId = :sessionId")
+    suspend fun delete(sessionId: String)
+}
+
+@Dao
 interface ScheduleDao {
     @Query("SELECT * FROM schedules ORDER BY name")
     fun observeAll(): Flow<List<ScheduleEntity>>

@@ -13,6 +13,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -122,5 +123,16 @@ class HermesApi @Inject constructor(
 
     suspend fun scheduleAction(action: String, id: String) {
         client.post("${base()}/v1/schedules/$id/$action") { auth() }
+    }
+
+    suspend fun updateSchedule(
+        id: String,
+        req: co.hermesdispatch.app.data.remote.dto.ScheduleUpdateRequest,
+    ) {
+        client.patch("${base()}/v1/schedules/$id") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(req)
+        }
     }
 }
