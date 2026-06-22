@@ -3,6 +3,7 @@ package co.hermesdispatch.app.data.repository
 import co.hermesdispatch.app.data.remote.HermesApi
 import co.hermesdispatch.app.data.remote.dto.StartTaskRequest
 import co.hermesdispatch.app.data.remote.sse.StreamEvent
+import co.hermesdispatch.app.domain.ChatMessage
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +33,13 @@ class ChatRepository @Inject constructor(
             StartResult.Run(resp.sessionId, requireNotNull(resp.streamId) { "missing stream_id" })
         }
     }
+
+    /** Past messages for an existing task, as (role, text) pairs. */
+    suspend fun history(sessionId: String): List<Pair<ChatMessage.Role, String>> =
+        api.messages(sessionId).map { dto ->
+            val role = if (dto.role == "user") ChatMessage.Role.USER else ChatMessage.Role.ASSISTANT
+            role to dto.text
+        }
 
     fun stream(streamId: String): Flow<StreamEvent> = api.streamTask(streamId)
 

@@ -24,8 +24,6 @@ class ScheduledViewModel @Inject constructor(
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
 
-    init { refresh() }
-
     fun refresh() = viewModelScope.launch {
         _refreshing.value = true
         repository.refresh()

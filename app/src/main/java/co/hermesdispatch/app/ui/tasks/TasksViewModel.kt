@@ -27,8 +27,6 @@ class TasksViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init { refresh() }
-
     fun refresh() {
         if (_refreshing.value) return
         _refreshing.value = true

@@ -64,6 +64,9 @@ class HermesApi @Inject constructor(
     suspend fun profiles(): ProfilesResponse =
         client.get("${base()}/v1/profiles") { auth() }.body()
 
+    suspend fun messages(sessionId: String): List<co.hermesdispatch.app.data.remote.dto.MessageDto> =
+        client.get("${base()}/v1/tasks/$sessionId/messages") { auth() }.body()
+
     suspend fun startTask(req: StartTaskRequest): StartTaskResponse =
         client.post("${base()}/v1/tasks") {
             contentType(ContentType.Application.Json)

@@ -44,6 +44,18 @@ class ChatViewModel @Inject constructor(
     /** Optional prompt to prefill the composer (e.g. from a suggestion chip). */
     val initialInput: String = savedStateHandle.get<String>("prompt").orEmpty()
 
+    init {
+        // Opening an existing task: load its conversation history.
+        val sid = sessionId
+        if (sid != null) {
+            viewModelScope.launch {
+                runCatching { repository.history(sid) }.getOrNull()?.forEach { (role, text) ->
+                    appendMessage(role, text)
+                }
+            }
+        }
+    }
+
     private var currentStreamId: String? = null
     private var streamJob: Job? = null
     private var nextId = 0L

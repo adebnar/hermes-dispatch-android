@@ -54,6 +54,10 @@ fun TasksScreen(
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
 
+    // Refresh whenever the screen is shown (e.g. after switching profile or
+    // creating a task), not just on first load.
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("Tasks") }) },
         floatingActionButton = {

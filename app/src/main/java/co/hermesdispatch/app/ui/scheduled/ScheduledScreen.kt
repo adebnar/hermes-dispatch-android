@@ -36,6 +36,8 @@ fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
     val schedules by viewModel.schedules.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+
     Scaffold(topBar = { TopAppBar(title = { Text("Scheduled") }) }) { padding ->
         PullToRefreshBox(
             isRefreshing = refreshing,

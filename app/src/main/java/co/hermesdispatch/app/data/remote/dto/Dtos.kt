@@ -51,6 +51,9 @@ data class StartTaskResponse(
 data class SteerRequest(val message: String)
 
 @Serializable
+data class MessageDto(val role: String, val text: String)
+
+@Serializable
 data class ProfileDto(
     val name: String,
     val model: String? = null,
