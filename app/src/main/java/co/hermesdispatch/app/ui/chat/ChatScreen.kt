@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -47,9 +48,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -188,6 +197,10 @@ private fun MessageBubble(message: ChatMessage) {
     val isUser = message.role == ChatMessage.Role.USER
     val bg = if (isUser) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceVariant
+    val linkColor = MaterialTheme.colorScheme.primary
+    val content = remember(message.text, linkColor) {
+        linkify(message.text.ifEmpty { "…" }, linkColor)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
@@ -200,9 +213,34 @@ private fun MessageBubble(message: ChatMessage) {
                         style = MaterialTheme.typography.labelMedium,
                     )
                 }
-                Text(message.text.ifEmpty { "…" }, style = MaterialTheme.typography.bodyMedium)
+                // Selectable text with tappable links (open in the relevant app / browser).
+                SelectionContainer {
+                    Text(content, style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
+    }
+}
+
+private val URL_REGEX = Regex("""https?://[^\s<>"')\]]+""")
+
+/** Turn URLs in [text] into tappable links; the platform opens them in the
+ *  matching app (e.g. Google Sheets) or the browser. */
+private fun linkify(text: String, linkColor: Color): AnnotatedString {
+    val styles = TextLinkStyles(
+        SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline),
+    )
+    return buildAnnotatedString {
+        var last = 0
+        for (m in URL_REGEX.findAll(text)) {
+            append(text.substring(last, m.range.first))
+            val raw = m.value
+            val url = raw.trimEnd('.', ',', ';', ':', ')', ']')
+            withLink(LinkAnnotation.Url(url, styles)) { append(url) }
+            if (url.length < raw.length) append(raw.substring(url.length))
+            last = m.range.last + 1
+        }
+        if (last < text.length) append(text.substring(last))
     }
 }
 
