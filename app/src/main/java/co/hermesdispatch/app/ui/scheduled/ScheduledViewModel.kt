@@ -2,6 +2,7 @@ package co.hermesdispatch.app.ui.scheduled
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.repository.InboxRepository
 import co.hermesdispatch.app.data.repository.ScheduleRepository
 import co.hermesdispatch.app.domain.Schedule
@@ -19,7 +20,11 @@ import kotlinx.coroutines.launch
 class ScheduledViewModel @Inject constructor(
     private val repository: ScheduleRepository,
     private val inbox: InboxRepository,
+    private val settings: SecureSettings,
 ) : ViewModel() {
+
+    /** Active profile these schedules are scoped to (shown in the top bar). */
+    val activeProfile: String get() = settings.activeProfile().orEmpty()
 
     val schedules: StateFlow<List<Schedule>> = repository.observeSchedules()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

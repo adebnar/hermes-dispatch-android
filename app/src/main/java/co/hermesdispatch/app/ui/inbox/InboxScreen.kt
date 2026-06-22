@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.InboxItem
+import co.hermesdispatch.app.ui.components.TitleWithProfile
 import co.hermesdispatch.app.ui.util.TimeFormat
 import kotlinx.coroutines.launch
 
@@ -76,7 +77,7 @@ fun InboxScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Inbox") }) },
+        topBar = { TopAppBar(title = { TitleWithProfile("Inbox", viewModel.activeProfile) }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {

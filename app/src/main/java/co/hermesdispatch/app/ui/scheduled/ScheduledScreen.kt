@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.Schedule
+import co.hermesdispatch.app.ui.components.TitleWithProfile
 import co.hermesdispatch.app.ui.util.TimeFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +62,9 @@ fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
 
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Scheduled") }) }) { padding ->
+    Scaffold(
+        topBar = { TopAppBar(title = { TitleWithProfile("Scheduled", viewModel.activeProfile) }) },
+    ) { padding ->
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = viewModel::refresh,

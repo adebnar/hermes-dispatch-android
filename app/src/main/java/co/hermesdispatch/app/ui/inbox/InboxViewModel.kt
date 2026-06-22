@@ -2,6 +2,7 @@ package co.hermesdispatch.app.ui.inbox
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.repository.InboxRepository
 import co.hermesdispatch.app.domain.InboxItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,11 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class InboxViewModel @Inject constructor(
     private val repository: InboxRepository,
+    private val settings: SecureSettings,
 ) : ViewModel() {
+
+    /** Active profile this inbox is scoped to (shown in the top bar). */
+    val activeProfile: String get() = settings.activeProfile().orEmpty()
 
     private val _showArchived = MutableStateFlow(false)
     val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()

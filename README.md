@@ -136,6 +136,7 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 8 | Inbox (local cron deliverables) + alerts, rich result cards, task grouping, server-side STT, E2EE push, persistent push registry | ✅ |
 | 9 | Inbox v2: result-only cards, swipe-archive / pin / delete (app-only), unread + failure alerts, opt-in redacted bug reports | ✅ |
 | 10 | Cron-side alert toggle (Scheduled tab) + custom alert sound (per-channel) | ✅ |
+| 11 | Active-profile shown on Tasks/Inbox/Scheduled; system notification-settings shortcut | ✅ |
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 

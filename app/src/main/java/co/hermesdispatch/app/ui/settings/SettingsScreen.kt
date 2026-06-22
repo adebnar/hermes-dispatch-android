@@ -195,6 +195,7 @@ fun SettingsScreen(
                 checked = state.alertOnFailures,
                 onCheckedChange = viewModel::setAlertOnFailures,
             )
+            val ctx = LocalContext.current
             AlertSoundRow(
                 title = state.alertSoundTitle,
                 onClick = {
@@ -210,6 +211,16 @@ fun SettingsScreen(
                         putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                     }
                     soundPicker.launch(intent)
+                },
+            )
+            ClickableRow(
+                title = "Notification settings",
+                subtitle = "System per-channel sound, vibration & importance for all alerts.",
+                onClick = {
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+                    ).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                    runCatching { ctx.startActivity(intent) }
                 },
             )
             SettingSwitchRow(
@@ -289,15 +300,19 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun AlertSoundRow(title: String, onClick: () -> Unit) {
+private fun AlertSoundRow(title: String, onClick: () -> Unit) =
+    ClickableRow("Alert sound", "Sound for Inbox alerts · $title", onClick)
+
+@Composable
+private fun ClickableRow(title: String, subtitle: String, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 4.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Alert sound", style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
-                "Sound for Inbox alerts · $title",
+                subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

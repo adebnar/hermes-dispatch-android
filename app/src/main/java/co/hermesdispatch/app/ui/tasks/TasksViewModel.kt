@@ -2,6 +2,7 @@ package co.hermesdispatch.app.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.repository.TaskRepository
 import co.hermesdispatch.app.domain.Task
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,11 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class TasksViewModel @Inject constructor(
     private val repository: TaskRepository,
+    private val settings: SecureSettings,
 ) : ViewModel() {
+
+    /** Active profile this list is scoped to (shown in the top bar). */
+    val activeProfile: String get() = settings.activeProfile().orEmpty()
 
     val tasks: StateFlow<List<Task>> = repository.observeTasks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

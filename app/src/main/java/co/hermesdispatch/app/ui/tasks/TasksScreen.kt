@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.Task
+import co.hermesdispatch.app.ui.components.TitleWithProfile
 import co.hermesdispatch.app.ui.util.TimeFormat
 
 private val SUGGESTIONS = listOf(
@@ -67,7 +68,9 @@ fun TasksScreen(
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Tasks") }) },
+        topBar = {
+            TopAppBar(title = { TitleWithProfile("Tasks", viewModel.activeProfile) })
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNewTask(null) }) {
                 Icon(Icons.Filled.Add, contentDescription = "New task")
