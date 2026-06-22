@@ -3,6 +3,7 @@ package co.hermesdispatch.app.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.remote.sse.StreamEvent
 import co.hermesdispatch.app.data.repository.ChatRepository
 import co.hermesdispatch.app.data.repository.TaskRepository
@@ -40,8 +41,16 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     private val tasks: TaskRepository,
+    private val settings: SecureSettings,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /** Whether to use the bridge's server-side transcription instead of on-device. */
+    val serverStt: Boolean get() = settings.serverTranscription()
+
+    /** Upload recorded audio for server-side transcription. */
+    suspend fun transcribe(audio: ByteArray): String =
+        runCatching { repository.transcribe(audio) }.getOrDefault("")
 
     // "new" => no session yet; the server creates one on first send.
     private var sessionId: String? =

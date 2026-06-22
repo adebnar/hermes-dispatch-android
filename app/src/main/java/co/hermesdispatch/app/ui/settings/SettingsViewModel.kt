@@ -25,6 +25,8 @@ data class SettingsUiState(
     val savingConnection: Boolean = false,
     val connectionError: String? = null,
     val connectionSaved: Boolean = false,
+    val serverStt: Boolean = false,
+    val encryptedPush: Boolean = false,
     val signedOut: Boolean = false,
 )
 
@@ -72,7 +74,23 @@ class SettingsViewModel @Inject constructor(
         bridgeUrl = auth.bridgeUrl().orEmpty(),
         profile = auth.activeProfile().orEmpty(),
         pushConfigured = !auth.pushEndpoint().isNullOrBlank(),
+        serverStt = auth.serverTranscription(),
+        encryptedPush = auth.encryptedPushEnabled(),
     )
+
+    fun setServerStt(on: Boolean) {
+        auth.setServerTranscription(on)
+        _state.update { it.copy(serverStt = on) }
+    }
+
+    fun setEncryptedPush(on: Boolean) {
+        _state.update { it.copy(encryptedPush = on) } // optimistic
+        viewModelScope.launch {
+            auth.setEncryptedPush(on).onFailure {
+                _state.update { s -> s.copy(encryptedPush = auth.encryptedPushEnabled()) }
+            }
+        }
+    }
 
     /** Persist + verify a new Bridge URL / token. Blank token keeps the old one. */
     fun saveConnection(url: String, token: String) {

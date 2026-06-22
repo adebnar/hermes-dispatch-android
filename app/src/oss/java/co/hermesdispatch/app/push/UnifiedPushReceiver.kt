@@ -18,7 +18,15 @@ import org.unifiedpush.android.connector.data.PushMessage as UpPushMessage
 class UnifiedPushReceiver : MessagingReceiver() {
 
     override fun onMessage(context: Context, message: UpPushMessage, instance: String) {
-        NotificationHelper.show(context, PushMessage.parse(message.content))
+        val text = message.content.toString(Charsets.UTF_8)
+        val push = if (PushCrypto.isEncrypted(text)) {
+            val plain = PushCrypto.decrypt(text, SecureSettings(context).pushKey())
+            // Don't surface ciphertext if the key is missing/mismatched.
+            if (plain != null) PushMessage.parse(plain) else PushMessage(status = "New update")
+        } else {
+            PushMessage.parse(message.content)
+        }
+        NotificationHelper.show(context, push)
     }
 
     override fun onNewEndpoint(context: Context, endpoint: PushEndpoint, instance: String) {
@@ -29,6 +37,10 @@ class UnifiedPushReceiver : MessagingReceiver() {
         Thread {
             try {
                 BridgeRegistrar.register(settings.bridgeUrl(), settings.bridgeToken(), endpoint.url)
+                // Re-register the E2EE key so it follows the device to this bridge.
+                settings.pushKey()?.let {
+                    BridgeRegistrar.registerKey(settings.bridgeUrl(), settings.bridgeToken(), it)
+                }
             } finally {
                 pending.finish()
             }

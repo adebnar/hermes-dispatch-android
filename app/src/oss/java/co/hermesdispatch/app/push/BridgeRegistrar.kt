@@ -17,10 +17,22 @@ object BridgeRegistrar {
     fun unregister(bridgeUrl: String?, token: String?, endpoint: String) =
         post(bridgeUrl, token, endpoint, "unregister")
 
+    /** Register the E2EE push key so the bridge encrypts payloads for this device. */
+    fun registerKey(bridgeUrl: String?, token: String?, key: String) {
+        if (bridgeUrl.isNullOrBlank() || key.isBlank()) return
+        postBody(URL("${bridgeUrl.trimEnd('/')}/v1/push/key"), token, """{"key":${jsonString(key)}}""")
+    }
+
     private fun post(bridgeUrl: String?, token: String?, endpoint: String, action: String) {
         if (bridgeUrl.isNullOrBlank() || endpoint.isBlank()) return
-        val url = URL("${bridgeUrl.trimEnd('/')}/v1/push/$action")
-        val body = """{"endpoint":${jsonString(endpoint)}}"""
+        postBody(
+            URL("${bridgeUrl.trimEnd('/')}/v1/push/$action"),
+            token,
+            """{"endpoint":${jsonString(endpoint)}}""",
+        )
+    }
+
+    private fun postBody(url: URL, token: String?, body: String) {
         var conn: HttpURLConnection? = null
         try {
             conn = (url.openConnection() as HttpURLConnection).apply {

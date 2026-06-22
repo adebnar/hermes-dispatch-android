@@ -3,6 +3,7 @@ package co.hermesdispatch.app.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.FlowRow
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -163,10 +166,48 @@ fun SettingsScreen(
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()
 
+            Text("Preferences", style = MaterialTheme.typography.titleMedium)
+            SettingSwitchRow(
+                title = "Server transcription",
+                subtitle = "Send voice to the bridge for speech-to-text instead of using on-device.",
+                checked = state.serverStt,
+                onCheckedChange = viewModel::setServerStt,
+            )
+            SettingSwitchRow(
+                title = "Encrypt notifications (E2EE)",
+                subtitle = "AES-encrypt push payloads so the relay only sees ciphertext; " +
+                    "this app decrypts and shows them.",
+                checked = state.encryptedPush,
+                onCheckedChange = viewModel::setEncryptedPush,
+            )
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider()
+
             OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
                 Text("Sign out")
             }
         }
+    }
+}
+
+@Composable
+private fun SettingSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

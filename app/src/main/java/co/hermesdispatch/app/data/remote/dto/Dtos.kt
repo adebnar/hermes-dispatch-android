@@ -98,3 +98,40 @@ data class ProfilesResponse(
     val profiles: List<ProfileDto> = emptyList(),
     val active: String? = null,
 )
+
+@Serializable
+data class InboxItemDto(
+    val id: String,
+    val profile: String = "",
+    @SerialName("job_id") val jobId: String = "",
+    @SerialName("job_name") val jobName: String = "",
+    val status: String = "ok",
+    @SerialName("created_at") val createdAt: Double? = null,
+    val size: Int = 0,
+    val snippet: String = "",
+)
+
+@Serializable
+data class InboxContentDto(
+    val id: String,
+    val profile: String = "",
+    @SerialName("job_id") val jobId: String = "",
+    @SerialName("job_name") val jobName: String = "",
+    val status: String = "ok",
+    @SerialName("created_at") val createdAt: Double? = null,
+    val size: Int = 0,
+    val snippet: String = "",
+    val content: String = "",
+)
+
+@Serializable
+data class AlertsRequest(@SerialName("job_ids") val jobIds: List<String> = emptyList())
+
+@Serializable
+data class AlertsResponse(@SerialName("job_ids") val jobIds: List<String> = emptyList())
+
+@Serializable
+data class PushKeyRequest(val key: String = "")
+
+@Serializable
+data class TranscribeResponse(val text: String = "")

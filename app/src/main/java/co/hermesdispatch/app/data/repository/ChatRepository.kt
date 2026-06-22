@@ -50,4 +50,7 @@ class ChatRepository @Inject constructor(
     suspend fun approve(streamId: String, choice: String) = api.approveTask(streamId, choice)
 
     suspend fun clarify(streamId: String, answer: String) = api.clarifyTask(streamId, answer)
+
+    /** Server-side speech-to-text: upload recorded audio, get the transcript. */
+    suspend fun transcribe(audio: ByteArray): String = api.transcribe(audio).text
 }

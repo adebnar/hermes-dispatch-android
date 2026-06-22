@@ -13,8 +13,10 @@ import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -135,4 +137,56 @@ class HermesApi @Inject constructor(
             setBody(req)
         }
     }
+
+    suspend fun inbox(): List<co.hermesdispatch.app.data.remote.dto.InboxItemDto> =
+        client.get("${base()}/v1/inbox") { auth() }.body()
+
+    suspend fun inboxItem(id: String): co.hermesdispatch.app.data.remote.dto.InboxContentDto =
+        client.get("${base()}/v1/inbox/item") {
+            auth()
+            parameter("id", id)
+        }.body()
+
+    suspend fun inboxAlerts(): co.hermesdispatch.app.data.remote.dto.AlertsResponse =
+        client.get("${base()}/v1/inbox/alerts") { auth() }.body()
+
+    suspend fun setInboxAlerts(jobIds: List<String>): co.hermesdispatch.app.data.remote.dto.AlertsResponse =
+        client.put("${base()}/v1/inbox/alerts") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.AlertsRequest(jobIds))
+        }.body()
+
+    suspend fun setPushKey(key: String) {
+        client.post("${base()}/v1/push/key") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.PushKeyRequest(key))
+        }
+    }
+
+    suspend fun transcribe(
+        audio: ByteArray,
+        filename: String = "audio.m4a",
+    ): co.hermesdispatch.app.data.remote.dto.TranscribeResponse =
+        client.post("${base()}/v1/audio/transcribe") {
+            auth()
+            setBody(
+                io.ktor.client.request.forms.MultiPartFormDataContent(
+                    io.ktor.client.request.forms.formData {
+                        append(
+                            "file",
+                            audio,
+                            io.ktor.http.Headers.build {
+                                append(HttpHeaders.ContentType, "audio/mp4")
+                                append(
+                                    HttpHeaders.ContentDisposition,
+                                    "filename=\"$filename\"",
+                                )
+                            },
+                        )
+                    },
+                ),
+            )
+        }.body()
 }

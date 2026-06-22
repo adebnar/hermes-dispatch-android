@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -27,6 +28,8 @@ import androidx.navigation.navArgument
 import co.hermesdispatch.app.data.repository.AuthRepository
 import co.hermesdispatch.app.ui.chat.ChatScreen
 import co.hermesdispatch.app.ui.chat.ChatViewModel
+import co.hermesdispatch.app.ui.inbox.InboxItemScreen
+import co.hermesdispatch.app.ui.inbox.InboxScreen
 import co.hermesdispatch.app.ui.pairing.PairingScreen
 import co.hermesdispatch.app.ui.scheduled.ScheduledScreen
 import co.hermesdispatch.app.ui.settings.SettingsScreen
@@ -37,8 +40,17 @@ import javax.inject.Inject
 object Routes {
     const val PAIRING = "pairing"
     const val TASKS = "tasks"
+    const val INBOX = "inbox"
     const val SCHEDULED = "scheduled"
     const val SETTINGS = "settings"
+    const val INBOX_ITEM = "inboxItem" // inboxItem?id=…&title=…
+    fun inboxItem(id: String, title: String?): String {
+        val params = buildList {
+            add("id=${android.net.Uri.encode(id)}")
+            if (!title.isNullOrBlank()) add("title=${android.net.Uri.encode(title)}")
+        }
+        return "$INBOX_ITEM?${params.joinToString("&")}"
+    }
     const val CHAT = "chat" // chat/{sessionId}?prompt=…&title=…; sessionId == "new" starts fresh
     fun chat(sessionId: String, prompt: String? = null, title: String? = null): String {
         val params = buildList {
@@ -72,6 +84,7 @@ fun AppNav(
     }
 
     val showBars = currentRoute == Routes.TASKS ||
+        currentRoute == Routes.INBOX ||
         currentRoute == Routes.SCHEDULED ||
         currentRoute == Routes.SETTINGS
 
@@ -81,6 +94,7 @@ fun AppNav(
                 NavigationBar {
                     val tabs = listOf(
                         Triple(Routes.TASKS, "Tasks", Icons.AutoMirrored.Filled.ListAlt),
+                        Triple(Routes.INBOX, "Inbox", Icons.Filled.Inbox),
                         Triple(Routes.SCHEDULED, "Scheduled", Icons.Filled.Schedule),
                         Triple(Routes.SETTINGS, "Settings", Icons.Filled.Settings),
                     )
@@ -127,6 +141,13 @@ fun AppNav(
                     )
                 }
             }
+            composable(Routes.INBOX) {
+                Box(tabModifier) {
+                    InboxScreen(
+                        onOpen = { id, title -> navController.navigate(Routes.inboxItem(id, title)) },
+                    )
+                }
+            }
             composable(Routes.SCHEDULED) { Box(tabModifier) { ScheduledScreen() } }
             composable(Routes.SETTINGS) {
                 Box(tabModifier) {
@@ -136,6 +157,19 @@ fun AppNav(
                         }
                     })
                 }
+            }
+            composable(
+                route = "${Routes.INBOX_ITEM}?id={id}&title={title}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
+                InboxItemScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 route = "${Routes.CHAT}/{sessionId}?prompt={prompt}&title={title}",

@@ -15,9 +15,11 @@ The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https:
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
 - 🗣️ **Voice or text** task creation (on-device speech-to-text).
 - 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
-- 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required.
-- 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs and the task list scope to the selected one.
-- 🤖 **Model picker** and **editable connection** (Bridge URL / token) in Settings.
+- 📥 **Inbox** — read cron jobs that "deliver to this desktop": the saved-to-disk markdown reports show up here, rendered and readable, with a per-job **bell** to get a push when a new one lands.
+- 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required. Optional **end-to-end encryption** so the relay only sees ciphertext.
+- 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs, tasks, and the Inbox scope to the selected one.
+- 🤖 **Model picker**, **editable connection** (Bridge URL / token), and an optional **server-side transcription** toggle in Settings.
+- 🔗 **Rich result cards** — Sheets/Docs/Drive links the agent returns render as tappable cards; tasks are grouped by recency.
 
 ---
 
@@ -130,8 +132,9 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 5 | Settings + profile switcher, suggested tasks, pull-to-refresh | ✅ |
 | 6 | Model picker, mid-run approvals/clarify, image previews, branded theme | ✅ |
 | 7 | In-app editing: rename tasks, edit & resend, edit schedules, edit connection | ✅ |
+| 8 | Inbox (local cron deliverables) + alerts, rich result cards, task grouping, server-side STT, E2EE push, persistent push registry | ✅ |
 
-Deferred (additive later): categories grouping, rich result/artifact cards, file workspace, server-side STT, persistent push registry, E2EE webpush, F-Droid/Play listings.
+Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 
 ## Contributing & security
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).

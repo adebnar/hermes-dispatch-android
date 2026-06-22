@@ -66,5 +66,29 @@ class AuthRepository @Inject constructor(
     suspend fun setModel(provider: String, model: String): Result<Unit> =
         runCatching { api.setModel(provider, model) }
 
+    fun serverTranscription(): Boolean = settings.serverTranscription()
+    fun setServerTranscription(on: Boolean) = settings.setServerTranscription(on)
+
+    fun encryptedPushEnabled(): Boolean = !settings.pushKey().isNullOrBlank()
+
+    /**
+     * Turn end-to-end push encryption on/off. On: generate a key (if absent),
+     * store it locally, and register it with the bridge so it encrypts payloads.
+     * Off: clear the key and tell the bridge to stop encrypting.
+     */
+    suspend fun setEncryptedPush(enabled: Boolean): Result<Unit> = runCatching {
+        if (enabled) {
+            val key = settings.pushKey()
+                ?: co.hermesdispatch.app.push.PushCrypto.generateKeyBase64().also { settings.setPushKey(it) }
+            api.setPushKey(key)
+        } else {
+            settings.setPushKey(null)
+            api.setPushKey("")
+        }
+    }.onFailure {
+        // Roll back local state if the bridge couldn't be told.
+        if (enabled) settings.setPushKey(null)
+    }
+
     fun signOut() = settings.clear()
 }

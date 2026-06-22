@@ -14,14 +14,16 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 enum class VoiceState { IDLE, LISTENING, TRANSCRIBING, UNAVAILABLE }
 
-/** Imperative handle returned to the UI: current [state], live [partial] text, and [start]. */
+/** Imperative handle returned to the UI: [state], live [partial] text, [start], [stop]. */
 class SpeechController internal constructor(
     val state: State<VoiceState>,
     val partial: State<String>,
     val start: () -> Unit,
+    val stop: () -> Unit = {},
 )
 
 /**
@@ -90,8 +92,88 @@ fun rememberSpeechController(onFinalText: (String) -> Unit): SpeechController {
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    return remember { SpeechController(state, partial, start) }
+    val stop: () -> Unit = { recognizer?.stopListening() }
+
+    return remember { SpeechController(state, partial, start, stop) }
 }
 
 private fun Bundle.firstResult(): String? =
     getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+
+/**
+ * Server-side speech-to-text: records audio with [android.media.MediaRecorder]
+ * to a temp m4a, then [transcribe]s it via the bridge. Same [SpeechController]
+ * shape as the on-device path so the composer can swap between them. [start]
+ * begins recording; [stop] ends it and uploads.
+ */
+@Composable
+fun rememberServerSpeechController(
+    onFinalText: (String) -> Unit,
+    transcribe: suspend (ByteArray) -> String,
+): SpeechController {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val state = remember { mutableStateOf(VoiceState.IDLE) }
+    val partial = remember { mutableStateOf("") }
+    val recorder = remember { mutableStateOf<android.media.MediaRecorder?>(null) }
+    val outFile = remember { mutableStateOf<java.io.File?>(null) }
+
+    fun beginRecording() {
+        runCatching {
+            val file = java.io.File.createTempFile("hd-stt-", ".m4a", context.cacheDir)
+            val rec = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                android.media.MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                android.media.MediaRecorder()
+            }
+            rec.setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
+            rec.setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4)
+            rec.setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC)
+            rec.setAudioEncodingBitRate(64_000)
+            rec.setAudioSamplingRate(16_000)
+            rec.setOutputFile(file.absolutePath)
+            rec.prepare()
+            rec.start()
+            recorder.value = rec
+            outFile.value = file
+            state.value = VoiceState.LISTENING
+        }.onFailure { state.value = VoiceState.IDLE }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) beginRecording() else state.value = VoiceState.IDLE }
+
+    val start: () -> Unit = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
+
+    val stop: () -> Unit = stop@{
+        val rec = recorder.value ?: return@stop
+        val file = outFile.value
+        state.value = VoiceState.TRANSCRIBING
+        runCatching { rec.stop() }
+        runCatching { rec.release() }
+        recorder.value = null
+        scope.launch {
+            val bytes = runCatching { file?.readBytes() }.getOrNull()
+            val text = if (bytes != null && bytes.isNotEmpty()) {
+                runCatching { transcribe(bytes) }.getOrDefault("")
+            } else {
+                ""
+            }
+            runCatching { file?.delete() }
+            partial.value = ""
+            state.value = VoiceState.IDLE
+            if (text.isNotBlank()) onFinalText(text)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { recorder.value?.release() }
+            recorder.value = null
+        }
+    }
+
+    return remember { SpeechController(state, partial, start, stop) }
+}

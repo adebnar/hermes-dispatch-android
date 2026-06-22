@@ -25,6 +25,17 @@ data class Schedule(
     val primaryTool: String? = null,
 )
 
+/** A locally-delivered cron result (saved-to-disk markdown), shown in the Inbox. */
+data class InboxItem(
+    val id: String,
+    val jobId: String,
+    val jobName: String,
+    val status: String = "ok", // ok | failed | silent
+    val createdAt: Long? = null,
+    val snippet: String = "",
+    val alerting: Boolean = false,
+)
+
 /** A connected Hermes bridge + the active profile. */
 data class Account(
     val bridgeUrl: String,

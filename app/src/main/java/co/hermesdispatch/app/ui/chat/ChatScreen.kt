@@ -5,6 +5,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -26,14 +30,21 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -94,9 +106,12 @@ fun ChatScreen(
     var editingMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val speech = rememberSpeechController { transcript ->
+    val onTranscript: (String) -> Unit = { transcript ->
         input = listOf(input.trim(), transcript.trim()).filter { it.isNotEmpty() }.joinToString(" ")
     }
+    val deviceSpeech = rememberSpeechController(onTranscript)
+    val serverSpeech = rememberServerSpeechController(onTranscript, viewModel::transcribe)
+    val speech = if (viewModel.serverStt) serverSpeech else deviceSpeech
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview(),
@@ -207,6 +222,7 @@ fun ChatScreen(
                 voicePartial = speech.partial.value,
                 hasImage = attachedImage != null,
                 onMic = speech.start,
+                onStopVoice = speech.stop,
                 onCamera = { cameraLauncher.launch(null) },
                 onGallery = {
                     galleryLauncher.launch(
@@ -324,24 +340,70 @@ fun ChatScreen(
     }
 }
 
+private data class ResultMeta(val label: String, val sub: String, val icon: ImageVector)
+
+private fun resultMeta(artifact: Artifact): ResultMeta {
+    val url = artifact.url
+    val host = url.substringAfter("://").substringBefore('/')
+    return when {
+        "docs.google.com/spreadsheets" in url -> ResultMeta("Google Sheet", host, Icons.Filled.TableChart)
+        "docs.google.com/document" in url -> ResultMeta("Google Doc", host, Icons.Filled.Description)
+        "docs.google.com/presentation" in url -> ResultMeta("Slides", host, Icons.Filled.Slideshow)
+        "docs.google.com/forms" in url || "forms.gle" in host -> ResultMeta("Form", host, Icons.Filled.Assignment)
+        "drive.google.com" in url -> ResultMeta("Drive file", host, Icons.Filled.Folder)
+        artifact.isImage -> ResultMeta("Image", host, Icons.Filled.Image)
+        else -> ResultMeta(host.ifBlank { "Link" }, url.substringAfter(host).take(40), Icons.Filled.Link)
+    }
+}
+
 @Composable
 private fun ArtifactsStrip(artifacts: List<Artifact>) {
     val uriHandler = LocalUriHandler.current
     LazyRow(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(artifacts, key = { it.url }) { artifact ->
-            AssistChip(
+            val meta = resultMeta(artifact)
+            Card(
                 onClick = { runCatching { uriHandler.openUri(artifact.url) } },
-                label = {
-                    Text(
-                        artifact.url.substringAfter("://").take(40),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
+                modifier = Modifier.width(210.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier.size(36.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            meta.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+                        Text(
+                            meta.label,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (meta.sub.isNotBlank()) {
+                            Text(
+                                meta.sub,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -462,6 +524,7 @@ private fun Composer(
     voicePartial: String,
     hasImage: Boolean,
     onMic: () -> Unit,
+    onStopVoice: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onRemoveImage: () -> Unit,
@@ -496,8 +559,15 @@ private fun Composer(
                 Icon(Icons.Filled.Image, contentDescription = "Attach image")
             }
             if (voiceState != VoiceState.UNAVAILABLE) {
-                IconButton(onClick = onMic, enabled = !running && !listening) {
-                    Icon(Icons.Filled.Mic, contentDescription = "Voice input")
+                val recording = voiceState == VoiceState.LISTENING
+                IconButton(
+                    onClick = { if (recording) onStopVoice() else onMic() },
+                    enabled = !running && voiceState != VoiceState.TRANSCRIBING,
+                ) {
+                    Icon(
+                        if (recording) Icons.Filled.Stop else Icons.Filled.Mic,
+                        contentDescription = if (recording) "Stop recording" else "Voice input",
+                    )
                 }
             }
             OutlinedTextField(

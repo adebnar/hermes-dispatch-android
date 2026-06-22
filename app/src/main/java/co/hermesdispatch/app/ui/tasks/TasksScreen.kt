@@ -101,8 +101,14 @@ fun TasksScreen(
                         )
                     }
                 } else {
-                    items(tasks, key = { it.id }) { task ->
-                        TaskCard(task, onClick = { onTaskClick(task.id, task.title) })
+                    // Tasks arrive newest-first; group them into time buckets and
+                    // emit a small header when the bucket changes.
+                    val grouped = tasks.groupBy { TimeFormat.bucket(it.updatedAt) }
+                    grouped.forEach { (label, group) ->
+                        item(key = "header-$label") { SectionHeader(label) }
+                        items(group, key = { it.id }) { task ->
+                            TaskCard(task, onClick = { onTaskClick(task.id, task.title) })
+                        }
                     }
                 }
             }
@@ -143,6 +149,17 @@ private fun SuggestionsRow(onPick: (String) -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+    )
 }
 
 @Composable
