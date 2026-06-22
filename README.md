@@ -64,21 +64,24 @@ Your `.env` needs:
 ### 3. Find your bridge URL + token — 🧑
 The phone needs the bridge's **URL** and **token**.
 
-**Get the address the phone should use** (the machine running the bridge):
-- **Tailscale (recommended)** — encrypted, works anywhere:
-  ```bash
-  tailscale ip -4        # e.g. 100.111.188.14  → bridge URL = http://100.111.188.14:8099
-  ```
-- **Same Wi-Fi (LAN)**:
-  ```bash
-  ipconfig getifaddr en0   # macOS, e.g. 192.168.33.3 → http://192.168.33.3:8099
-  hostname -I              # Linux (first address)
-  ```
-- The bridge listens on port **8099**, so the URL is `http://<that-ip>:8099`.
+**Recommended — HTTPS via Tailscale Serve** (valid cert, validated by the phone automatically):
+```bash
+# in the bridge repo:
+./scripts/enable-https.sh        # or: tailscale serve --bg 8099
+```
+This gives a URL like `https://your-machine.your-tailnet.ts.net` — **use that** as the bridge URL.
+(Requires "HTTPS Certificates" enabled for your tailnet in the Tailscale admin console.)
 
-> The app allows plain `http://` because you're on your own private network
-> (Tailscale is WireGuard-encrypted). To expose the bridge to the public internet,
-> put it behind HTTPS (Tailscale Serve / a reverse proxy) and use an `https://` URL.
+**Plain HTTP alternative** (no Serve) — the bridge listens on port **8099**:
+```bash
+tailscale ip -4          # encrypted transport → http://100.x.y.z:8099
+ipconfig getifaddr en0   # macOS LAN          → http://192.168.x.y:8099
+hostname -I              # Linux LAN (first address)
+```
+
+> The app accepts plain `http://` because you're on your own private network
+> (Tailscale is WireGuard-encrypted). HTTPS via Tailscale Serve is preferred — it
+> validates against the system trust store with no extra config.
 
 **Get the bridge token** (the `BRIDGE_TOKEN` you set in step 2):
 ```bash
