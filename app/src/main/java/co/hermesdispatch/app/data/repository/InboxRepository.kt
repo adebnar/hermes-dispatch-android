@@ -91,6 +91,10 @@ class InboxRepository @Inject constructor(
         nowAlerting
     }
 
+    /** Set of cron job ids currently subscribed to inbox alerts. */
+    suspend fun alertJobIds(): Set<String> =
+        runCatching { api.inboxAlerts().jobIds.toSet() }.getOrDefault(emptySet())
+
     suspend fun alertOnFailures(): Boolean =
         runCatching { api.inboxAlerts().alertOnFailures }.getOrDefault(false)
 

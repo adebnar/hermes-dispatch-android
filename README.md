@@ -15,7 +15,7 @@ The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https:
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
 - 🗣️ **Voice or text** task creation (on-device speech-to-text).
 - 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
-- 📥 **Inbox** — cron jobs that "deliver to this desktop" show up as clean **result** cards (just the agent's output, rendered). **Swipe to archive**, **long-press to pin/delete** (app-only — the files on disk are never touched), unread dots, and a per-job **bell** plus a global "alert on failures" so only what you care about buzzes.
+- 📥 **Inbox** — cron jobs that "deliver to this desktop" show up as clean **result** cards (just the agent's output, rendered). **Swipe to archive**, **pin/delete** (app-only — the files on disk are never touched), unread dots, and a per-job **bell** plus a global "alert on failures" so only what you care about buzzes. Subscribe a job to alerts straight from the **Scheduled** tab too, and pick a **custom alert sound** in Settings.
 - 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required. Optional **end-to-end encryption** so the relay only sees ciphertext.
 - 🐞 **Bug reporting** (opt-in) — capture the app's own logs into a **redacted** diagnostic report (secrets/keys/tokens stripped), review it, and share as a file.
 - 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs, tasks, and the Inbox scope to the selected one.
@@ -135,6 +135,7 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 7 | In-app editing: rename tasks, edit & resend, edit schedules, edit connection | ✅ |
 | 8 | Inbox (local cron deliverables) + alerts, rich result cards, task grouping, server-side STT, E2EE push, persistent push registry | ✅ |
 | 9 | Inbox v2: result-only cards, swipe-archive / pin / delete (app-only), unread + failure alerts, opt-in redacted bug reports | ✅ |
+| 10 | Cron-side alert toggle (Scheduled tab) + custom alert sound (per-channel) | ✅ |
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 

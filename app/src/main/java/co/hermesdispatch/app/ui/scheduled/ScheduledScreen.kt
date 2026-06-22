@@ -16,11 +16,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +56,7 @@ import co.hermesdispatch.app.ui.util.TimeFormat
 fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
     val schedules by viewModel.schedules.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
+    val alerting by viewModel.alerting.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Schedule?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
@@ -80,6 +86,8 @@ fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
                     items(schedules, key = { it.id }) { schedule ->
                         ScheduleCard(
                             schedule = schedule,
+                            alerting = schedule.id in alerting,
+                            onToggleAlert = { viewModel.toggleAlert(schedule) },
                             onTogglePause = { viewModel.togglePause(schedule) },
                             onRunNow = { viewModel.runNow(schedule) },
                             onEdit = { editing = schedule },
@@ -153,11 +161,14 @@ private fun EditScheduleDialog(
 @Composable
 private fun ScheduleCard(
     schedule: Schedule,
+    alerting: Boolean,
+    onToggleAlert: () -> Unit,
     onTogglePause: () -> Unit,
     onRunNow: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     val tint = if (schedule.paused) MaterialTheme.colorScheme.surfaceVariant
     else MaterialTheme.colorScheme.primaryContainer
     val next = schedule.nextRun?.let { TimeFormat.relative(it) }.orEmpty()
@@ -196,20 +207,46 @@ private fun ScheduleCard(
                     )
                 }
             }
-            IconButton(onClick = onRunNow) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = "Run now")
-            }
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Filled.Edit, contentDescription = "Edit")
-            }
-            IconButton(onClick = onTogglePause) {
+            // Alert bell (per cron job — one row per job, so no ambiguity).
+            IconButton(onClick = onToggleAlert) {
                 Icon(
-                    if (schedule.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                    contentDescription = if (schedule.paused) "Resume" else "Pause",
+                    if (alerting) Icons.Filled.NotificationsActive else Icons.Outlined.Notifications,
+                    contentDescription = if (alerting) "Alerts on" else "Alerts off",
+                    tint = if (alerting) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete")
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Run now") },
+                        leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
+                        onClick = { menuOpen = false; onRunNow() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                        onClick = { menuOpen = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (schedule.paused) "Resume" else "Pause") },
+                        leadingIcon = {
+                            Icon(
+                                if (schedule.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = { menuOpen = false; onTogglePause() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                        onClick = { menuOpen = false; onDelete() },
+                    )
+                }
             }
         }
     }

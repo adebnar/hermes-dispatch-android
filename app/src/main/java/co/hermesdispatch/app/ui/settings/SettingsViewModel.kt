@@ -37,6 +37,7 @@ data class SettingsUiState(
     val bugReporting: Boolean = false,
     val reportPreview: String? = null,
     val preparingReport: Boolean = false,
+    val alertSoundTitle: String = "Default",
     val signedOut: Boolean = false,
 )
 
@@ -92,7 +93,25 @@ class SettingsViewModel @Inject constructor(
         serverStt = auth.serverTranscription(),
         encryptedPush = auth.encryptedPushEnabled(),
         bugReporting = auth.bugReporting(),
+        alertSoundTitle = soundTitle(),
     )
+
+    private fun soundTitle(): String = when (val pref = auth.alertSoundUri()) {
+        null -> "Default"
+        "" -> "Silent"
+        else -> runCatching {
+            android.media.RingtoneManager.getRingtone(appContext, android.net.Uri.parse(pref))
+                ?.getTitle(appContext)
+        }.getOrNull() ?: "Custom"
+    }
+
+    /** Apply a sound chosen from the system ringtone picker (null uri = Silent). */
+    fun onAlertSoundPicked(uri: android.net.Uri?) {
+        co.hermesdispatch.app.push.NotificationHelper.applyAlertSound(
+            appContext, uri, silent = uri == null,
+        )
+        _state.update { it.copy(alertSoundTitle = soundTitle()) }
+    }
 
     fun setBugReporting(on: Boolean) {
         auth.setBugReporting(on)

@@ -72,6 +72,9 @@ class AuthRepository @Inject constructor(
     fun bugReporting(): Boolean = settings.bugReporting()
     fun setBugReporting(on: Boolean) = settings.setBugReporting(on)
 
+    /** Inbox alert sound pref: null = default, "" = silent, else a Uri string. */
+    fun alertSoundUri(): String? = settings.alertSoundUri()
+
     /** Exact secret values a diagnostic report must mask before sharing. */
     fun secretsToMask(): List<String> =
         listOfNotNull(settings.bridgeToken(), settings.pushKey()).filter { it.isNotBlank() }

@@ -1,5 +1,8 @@
 package co.hermesdispatch.app.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +55,20 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var profile by remember(state.profile) { mutableStateOf(state.profile) }
+
+    val soundPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val uri = result.data?.let {
+                @Suppress("DEPRECATION")
+                it.getParcelableExtra<android.net.Uri>(
+                    android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+                )
+            }
+            viewModel.onAlertSoundPicked(uri)
+        }
+    }
     var bridgeUrlField by remember(state.bridgeUrl) { mutableStateOf(state.bridgeUrl) }
     var tokenField by remember { mutableStateOf("") }
 
@@ -178,6 +195,23 @@ fun SettingsScreen(
                 checked = state.alertOnFailures,
                 onCheckedChange = viewModel::setAlertOnFailures,
             )
+            AlertSoundRow(
+                title = state.alertSoundTitle,
+                onClick = {
+                    val intent = android.content.Intent(
+                        android.media.RingtoneManager.ACTION_RINGTONE_PICKER,
+                    ).apply {
+                        putExtra(
+                            android.media.RingtoneManager.EXTRA_RINGTONE_TYPE,
+                            android.media.RingtoneManager.TYPE_NOTIFICATION,
+                        )
+                        putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, "Inbox alert sound")
+                        putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                        putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                    }
+                    soundPicker.launch(intent)
+                },
+            )
             SettingSwitchRow(
                 title = "Server transcription",
                 subtitle = "Send voice to the bridge for speech-to-text instead of using on-device.",
@@ -251,6 +285,23 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = viewModel::dismissReport) { Text("Close") } },
         )
+    }
+}
+
+@Composable
+private fun AlertSoundRow(title: String, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 4.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Alert sound", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Sound for Inbox alerts · $title",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
