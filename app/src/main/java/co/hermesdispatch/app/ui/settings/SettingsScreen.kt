@@ -1,6 +1,7 @@
 package co.hermesdispatch.app.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -79,6 +82,29 @@ fun SettingsScreen(
                 onClick = { viewModel.saveProfile(profile) },
                 enabled = profile != state.profile,
             ) { Text("Save profile") }
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider()
+
+            Text("Model", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "The model this profile's agent uses. Pick a working one if replies fail.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            var modelMenu by remember { mutableStateOf(false) }
+            Box {
+                OutlinedButton(onClick = { modelMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(state.currentModel.ifBlank { "Select model" })
+                }
+                DropdownMenu(expanded = modelMenu, onDismissRequest = { modelMenu = false }) {
+                    state.models.forEach { opt ->
+                        DropdownMenuItem(
+                            text = { Text(opt.model) },
+                            onClick = { viewModel.setModel(opt); modelMenu = false },
+                        )
+                    }
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()

@@ -17,6 +17,8 @@ data class SettingsUiState(
     val bridgeUrl: String = "",
     val profile: String = "",
     val availableProfiles: List<String> = emptyList(),
+    val currentModel: String = "",
+    val models: List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto> = emptyList(),
     val pushConfigured: Boolean = false,
     val signedOut: Boolean = false,
 )
@@ -33,8 +35,24 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val profiles = auth.availableProfiles()
-            _state.update { it.copy(availableProfiles = profiles) }
+            _state.update { it.copy(availableProfiles = auth.availableProfiles()) }
+        }
+        loadModels()
+    }
+
+    private fun loadModels() {
+        viewModelScope.launch {
+            auth.models()?.let { m ->
+                _state.update { it.copy(models = m.models, currentModel = m.current.orEmpty()) }
+            }
+        }
+    }
+
+    fun setModel(option: co.hermesdispatch.app.data.remote.dto.ModelOptionDto) {
+        viewModelScope.launch {
+            _state.update { it.copy(currentModel = option.model) }  // optimistic
+            auth.setModel(option.provider, option.model)
+            loadModels()
         }
     }
 
@@ -55,6 +73,7 @@ class SettingsViewModel @Inject constructor(
             tasks.refresh()
             schedules.refresh()
         }
+        loadModels()  // model is per-profile
     }
 
     fun signOut() {

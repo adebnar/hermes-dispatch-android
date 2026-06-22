@@ -67,6 +67,17 @@ class HermesApi @Inject constructor(
     suspend fun messages(sessionId: String): List<co.hermesdispatch.app.data.remote.dto.MessageDto> =
         client.get("${base()}/v1/tasks/$sessionId/messages") { auth() }.body()
 
+    suspend fun models(): co.hermesdispatch.app.data.remote.dto.ModelsResponse =
+        client.get("${base()}/v1/models") { auth() }.body()
+
+    suspend fun setModel(provider: String, model: String) {
+        client.post("${base()}/v1/models/set") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.SetModelRequest(model, provider))
+        }
+    }
+
     suspend fun startTask(req: StartTaskRequest): StartTaskResponse =
         client.post("${base()}/v1/tasks") {
             contentType(ContentType.Application.Json)

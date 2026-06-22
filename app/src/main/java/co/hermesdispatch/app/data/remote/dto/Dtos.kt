@@ -54,6 +54,18 @@ data class SteerRequest(val message: String)
 data class MessageDto(val role: String, val text: String)
 
 @Serializable
+data class ModelOptionDto(val provider: String, val model: String)
+
+@Serializable
+data class ModelsResponse(
+    val models: List<ModelOptionDto> = emptyList(),
+    val current: String? = null,
+)
+
+@Serializable
+data class SetModelRequest(val model: String, val provider: String? = null)
+
+@Serializable
 data class ProfileDto(
     val name: String,
     val model: String? = null,

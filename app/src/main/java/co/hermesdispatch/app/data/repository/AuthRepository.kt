@@ -37,5 +37,10 @@ class AuthRepository @Inject constructor(
     suspend fun availableProfiles(): List<String> =
         runCatching { api.profiles().profiles.map { it.name } }.getOrDefault(emptyList())
 
+    suspend fun models() = runCatching { api.models() }.getOrNull()
+
+    suspend fun setModel(provider: String, model: String): Result<Unit> =
+        runCatching { api.setModel(provider, model) }
+
     fun signOut() = settings.clear()
 }
