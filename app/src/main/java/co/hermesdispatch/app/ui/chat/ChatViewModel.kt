@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
@@ -99,7 +103,13 @@ class ChatViewModel @Inject constructor(
                 addAction(ActionItem.Kind.STATUS, "Approval needed: ${event.command}")
             is StreamEvent.Clarify -> addAction(ActionItem.Kind.STATUS, "Asked: ${event.question}")
             is StreamEvent.Completed -> {
-                event.raw?.let { harvestArtifactsFrom(it) }
+                event.raw?.let { raw ->
+                    harvestArtifactsFrom(raw)
+                    // Some models return the answer only in the completion event
+                    // (no token deltas) — fill the bubble so it isn't left blank.
+                    val finalText = completedText(raw)
+                    if (finalText.isNotBlank()) setAssistantIfEmpty(assistantId, finalText)
+                }
                 _state.update { it.copy(running = false) }
             }
             is StreamEvent.Error ->
@@ -123,6 +133,17 @@ class ChatViewModel @Inject constructor(
         s.copy(messages = s.messages.map { if (it.id == id) it.copy(text = it.text + delta) else it })
     }
 
+    private fun setAssistantIfEmpty(id: Long, text: String) = _state.update { s ->
+        s.copy(messages = s.messages.map {
+            if (it.id == id && it.text.isBlank()) it.copy(text = text) else it
+        })
+    }
+
+    private fun completedText(raw: String): String = runCatching {
+        (completedJson.parseToJsonElement(raw) as? JsonObject)
+            ?.get("text")?.jsonPrimitive?.contentOrNull.orEmpty()
+    }.getOrDefault("")
+
     private fun addAction(kind: ActionItem.Kind, label: String) {
         if (label.isBlank()) return
         _state.update { it.copy(actions = it.actions + ActionItem(nextId++, kind, label)) }
@@ -142,5 +163,8 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    companion object { const val NEW = "new" }
+    companion object {
+        const val NEW = "new"
+        private val completedJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    }
 }
