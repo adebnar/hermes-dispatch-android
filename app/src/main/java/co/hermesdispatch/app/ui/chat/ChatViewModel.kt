@@ -71,7 +71,12 @@ class ChatViewModel @Inject constructor(
         val message = text.trim()
         if ((message.isEmpty() && images.isEmpty()) || _state.value.running) return
 
-        appendMessage(ChatMessage.Role.USER, message.ifEmpty { "(image)" }, imageCount = images.size)
+        appendMessage(
+            ChatMessage.Role.USER,
+            message.ifEmpty { "(image)" },
+            imageCount = images.size,
+            imageData = images.firstOrNull(),
+        )
         val assistant = appendMessage(ChatMessage.Role.ASSISTANT, "")
         _state.update { it.copy(running = true, error = null) }
 
@@ -158,8 +163,12 @@ class ChatViewModel @Inject constructor(
         role: ChatMessage.Role,
         text: String,
         imageCount: Int = 0,
+        imageData: String? = null,
     ): ChatMessage {
-        val msg = ChatMessage(id = nextId++, role = role, text = text, imageCount = imageCount)
+        val msg = ChatMessage(
+            id = nextId++, role = role, text = text,
+            imageCount = imageCount, imageData = imageData,
+        )
         _state.update { it.copy(messages = it.messages + msg) }
         return msg
     }

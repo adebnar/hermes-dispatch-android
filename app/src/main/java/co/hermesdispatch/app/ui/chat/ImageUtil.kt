@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
 
@@ -24,6 +26,13 @@ object ImageUtil {
     fun uriToDataUrl(context: Context, uri: Uri): String? = runCatching {
         val bmp = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
         bmp?.let { bitmapToDataUrl(it) }
+    }.getOrNull()
+
+    /** Decode a base64 data URL back to an ImageBitmap for in-chat preview. */
+    fun dataUrlToImageBitmap(dataUrl: String): ImageBitmap? = runCatching {
+        val b64 = dataUrl.substringAfter("base64,", dataUrl)
+        val bytes = Base64.decode(b64, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
     }.getOrNull()
 
     private fun downscale(bitmap: Bitmap): Bitmap {

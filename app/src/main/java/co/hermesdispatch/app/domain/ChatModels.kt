@@ -6,6 +6,7 @@ data class ChatMessage(
     val role: Role,
     val text: String,
     val imageCount: Int = 0,
+    val imageData: String? = null, // base64 data URL of the first attached image, for preview
 ) {
     enum class Role { USER, ASSISTANT }
 }

@@ -3,6 +3,7 @@ package co.hermesdispatch.app.ui.chat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -273,8 +275,22 @@ private fun MessageBubble(message: ChatMessage) {
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Surface(color = bg, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                if (message.imageCount > 0) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val thumb = remember(message.imageData) {
+                    message.imageData?.let { ImageUtil.dataUrlToImageBitmap(it) }
+                }
+                if (thumb != null) {
+                    Image(
+                        bitmap = thumb,
+                        contentDescription = "Attached image",
+                        modifier = Modifier
+                            .heightIn(max = 180.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                    )
+                } else if (message.imageCount > 0) {
                     Text(
                         "🖼 ${message.imageCount} image${if (message.imageCount > 1) "s" else ""} attached",
                         style = MaterialTheme.typography.labelMedium,
