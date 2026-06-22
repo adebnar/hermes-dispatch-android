@@ -3,6 +3,8 @@ package co.hermesdispatch.app.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.hermesdispatch.app.data.repository.AuthRepository
+import co.hermesdispatch.app.data.repository.ScheduleRepository
+import co.hermesdispatch.app.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val auth: AuthRepository,
+    private val tasks: TaskRepository,
+    private val schedules: ScheduleRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(snapshot())
@@ -43,9 +47,21 @@ class SettingsViewModel @Inject constructor(
     fun saveProfile(profile: String) {
         auth.setProfile(profile.trim().ifBlank { null })
         _state.update { it.copy(profile = profile.trim()) }
+        // Switching profiles must not show the previous profile's tasks: clear the
+        // caches immediately, then refetch scoped to the new profile.
+        viewModelScope.launch {
+            tasks.clearCache()
+            schedules.clearCache()
+            tasks.refresh()
+            schedules.refresh()
+        }
     }
 
     fun signOut() {
+        viewModelScope.launch {
+            tasks.clearCache()
+            schedules.clearCache()
+        }
         auth.signOut()
         _state.value = _state.value.copy(signedOut = true)
     }

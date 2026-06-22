@@ -29,6 +29,8 @@ class TaskRepository @Inject constructor(
                 updatedAt = (it.updatedAt * 1000).toLong(),
             )
         }
-        dao.upsertAll(remote)
+        dao.replaceAll(remote)
     }
+
+    suspend fun clearCache() = dao.clear()
 }

@@ -38,8 +38,10 @@ class ScheduleRepository @Inject constructor(
                 lastRun = it.lastRun?.let { ts -> (ts * 1000).toLong() },
             )
         }
-        dao.upsertAll(remote)
+        dao.replaceAll(remote)
     }
+
+    suspend fun clearCache() = dao.clear()
 
     suspend fun setPaused(id: String, paused: Boolean): Result<Unit> = runCatching {
         api.scheduleAction(if (paused) "pause" else "resume", id)
