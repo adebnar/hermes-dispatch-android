@@ -47,17 +47,17 @@ class ChatViewModel @Inject constructor(
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
-    fun send(text: String) {
+    fun send(text: String, images: List<String> = emptyList()) {
         val message = text.trim()
-        if (message.isEmpty() || _state.value.running) return
+        if ((message.isEmpty() && images.isEmpty()) || _state.value.running) return
 
-        appendMessage(ChatMessage.Role.USER, message)
+        appendMessage(ChatMessage.Role.USER, message.ifEmpty { "(image)" }, imageCount = images.size)
         val assistant = appendMessage(ChatMessage.Role.ASSISTANT, "")
         _state.update { it.copy(running = true, error = null) }
 
         streamJob = viewModelScope.launch {
             runCatching {
-                when (val result = repository.startRun(sessionId, message)) {
+                when (val result = repository.startRun(sessionId, message, images)) {
                     is ChatRepository.StartResult.Cron -> {
                         val note = result.cron?.let { " (cron: $it)" }.orEmpty()
                         extendAssistant(assistant.id, "Added to your Scheduled tasks$note.")
@@ -109,8 +109,12 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun appendMessage(role: ChatMessage.Role, text: String): ChatMessage {
-        val msg = ChatMessage(id = nextId++, role = role, text = text)
+    private fun appendMessage(
+        role: ChatMessage.Role,
+        text: String,
+        imageCount: Int = 0,
+    ): ChatMessage {
+        val msg = ChatMessage(id = nextId++, role = role, text = text, imageCount = imageCount)
         _state.update { it.copy(messages = it.messages + msg) }
         return msg
     }

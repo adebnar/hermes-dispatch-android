@@ -36,6 +36,7 @@ data class StartTaskRequest(
     val message: String,
     @SerialName("session_id") val sessionId: String? = null,
     val model: String? = null,
+    val images: List<String> = emptyList(),
 )
 
 @Serializable

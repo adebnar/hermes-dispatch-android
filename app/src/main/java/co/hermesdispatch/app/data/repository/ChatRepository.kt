@@ -18,8 +18,14 @@ class ChatRepository @Inject constructor(
         data class Cron(val cron: String?) : StartResult
     }
 
-    suspend fun startRun(sessionId: String?, message: String): StartResult {
-        val resp = api.startTask(StartTaskRequest(sessionId = sessionId, message = message))
+    suspend fun startRun(
+        sessionId: String?,
+        message: String,
+        images: List<String> = emptyList(),
+    ): StartResult {
+        val resp = api.startTask(
+            StartTaskRequest(sessionId = sessionId, message = message, images = images),
+        )
         return if (resp.kind == "cron") {
             StartResult.Cron(resp.cron)
         } else {

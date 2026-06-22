@@ -5,6 +5,7 @@ data class ChatMessage(
     val id: Long,
     val role: Role,
     val text: String,
+    val imageCount: Int = 0,
 ) {
     enum class Role { USER, ASSISTANT }
 }

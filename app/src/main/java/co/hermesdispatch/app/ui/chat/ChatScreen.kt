@@ -1,5 +1,8 @@
 package co.hermesdispatch.app.ui.chat
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,17 +14,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,10 +46,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.ActionItem
@@ -56,12 +64,22 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var input by remember { mutableStateOf(viewModel.initialInput) }
+    var attachedImage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val speech = rememberSpeechController { transcript ->
         input = listOf(input.trim(), transcript.trim()).filter { it.isNotEmpty() }.joinToString(" ")
     }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview(),
+    ) { bitmap -> if (bitmap != null) attachedImage = ImageUtil.bitmapToDataUrl(bitmap) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> if (uri != null) attachedImage = ImageUtil.uriToDataUrl(context, uri) }
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
@@ -69,7 +87,14 @@ fun ChatScreen(
         }
     }
 
+    fun doSend() {
+        viewModel.send(input, listOfNotNull(attachedImage))
+        input = ""
+        attachedImage = null
+    }
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Task") },
@@ -118,8 +143,16 @@ fun ChatScreen(
                 running = state.running,
                 voiceState = speech.state.value,
                 voicePartial = speech.partial.value,
+                hasImage = attachedImage != null,
                 onMic = speech.start,
-                onSend = { viewModel.send(input); input = "" },
+                onCamera = { cameraLauncher.launch(null) },
+                onGallery = {
+                    galleryLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                onRemoveImage = { attachedImage = null },
+                onSend = ::doSend,
                 onCancel = viewModel::cancel,
             )
         }
@@ -153,13 +186,20 @@ private fun MessageBubble(message: ChatMessage) {
     val isUser = message.role == ChatMessage.Role.USER
     val bg = if (isUser) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceVariant
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+    ) {
         Surface(color = bg, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
-            Text(
-                message.text.ifEmpty { "…" },
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                if (message.imageCount > 0) {
+                    Text(
+                        "🖼 ${message.imageCount} image${if (message.imageCount > 1) "s" else ""} attached",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+                Text(message.text.ifEmpty { "…" }, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
@@ -201,7 +241,11 @@ private fun Composer(
     running: Boolean,
     voiceState: VoiceState,
     voicePartial: String,
+    hasImage: Boolean,
     onMic: () -> Unit,
+    onCamera: () -> Unit,
+    onGallery: () -> Unit,
+    onRemoveImage: () -> Unit,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -211,31 +255,49 @@ private fun Composer(
         VoiceState.LISTENING -> voicePartial.ifBlank { "Listening…" }
         else -> value
     }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (voiceState != VoiceState.UNAVAILABLE) {
-            IconButton(onClick = onMic, enabled = !running && !listening) {
-                Icon(Icons.Filled.Mic, contentDescription = "Voice input")
-            }
+    val canSend = (value.isNotBlank() || hasImage) && !listening
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        if (hasImage) {
+            InputChip(
+                selected = true,
+                onClick = onRemoveImage,
+                label = { Text("Image attached") },
+                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove image") },
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+            )
         }
-        OutlinedTextField(
-            value = display,
-            onValueChange = onValueChange,
-            modifier = Modifier.weight(1f),
-            enabled = !listening,
-            placeholder = { Text("Message your agent…") },
-            maxLines = 4,
-        )
-        Box(modifier = Modifier.padding(start = 8.dp)) {
-            if (running) {
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.Filled.Stop, contentDescription = "Stop")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onCamera, enabled = !running && !listening) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = "Take photo")
+            }
+            IconButton(onClick = onGallery, enabled = !running && !listening) {
+                Icon(Icons.Filled.Image, contentDescription = "Attach image")
+            }
+            if (voiceState != VoiceState.UNAVAILABLE) {
+                IconButton(onClick = onMic, enabled = !running && !listening) {
+                    Icon(Icons.Filled.Mic, contentDescription = "Voice input")
                 }
-            } else {
-                IconButton(onClick = onSend, enabled = value.isNotBlank() && !listening) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+            }
+            OutlinedTextField(
+                value = display,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                enabled = !listening,
+                placeholder = { Text("Message your agent…") },
+                maxLines = 4,
+            )
+            Box(modifier = Modifier.padding(start = 8.dp)) {
+                if (running) {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.Filled.Stop, contentDescription = "Stop")
+                    }
+                } else {
+                    IconButton(onClick = onSend, enabled = canSend) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+                    }
                 }
             }
         }
