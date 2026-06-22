@@ -51,7 +51,21 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             LabeledValue("Bridge", state.bridgeUrl.ifBlank { "—" })
-            LabeledValue("Background push", if (state.pushConfigured) "Connected" else "Not set up")
+
+            Text("Lock-screen alerts", style = MaterialTheme.typography.titleMedium)
+            if (state.pushConfigured && state.pushTopic.isNotBlank()) {
+                Text(
+                    "Install the ntfy app, then subscribe to this topic to get task " +
+                        "progress on your lock screen (server ${state.pushBaseUrl}):",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                LabeledValue("ntfy topic", state.pushTopic)
+            } else {
+                Text(
+                    "Not configured on the bridge (set NTFY_TOPIC).",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
             HorizontalDivider()
 

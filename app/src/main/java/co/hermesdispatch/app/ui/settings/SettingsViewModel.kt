@@ -20,6 +20,8 @@ data class SettingsUiState(
     val currentModel: String = "",
     val models: List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto> = emptyList(),
     val pushConfigured: Boolean = false,
+    val pushTopic: String = "",
+    val pushBaseUrl: String = "",
     val signedOut: Boolean = false,
 )
 
@@ -36,6 +38,13 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _state.update { it.copy(availableProfiles = auth.availableProfiles()) }
+        }
+        viewModelScope.launch {
+            auth.pushInfo()?.let { p ->
+                _state.update {
+                    it.copy(pushConfigured = p.configured, pushTopic = p.topic, pushBaseUrl = p.baseUrl)
+                }
+            }
         }
         loadModels()
     }

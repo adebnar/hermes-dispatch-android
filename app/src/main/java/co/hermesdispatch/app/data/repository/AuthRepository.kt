@@ -39,6 +39,8 @@ class AuthRepository @Inject constructor(
 
     suspend fun models() = runCatching { api.models() }.getOrNull()
 
+    suspend fun pushInfo() = runCatching { api.pushInfo() }.getOrNull()
+
     suspend fun setModel(provider: String, model: String): Result<Unit> =
         runCatching { api.setModel(provider, model) }
 

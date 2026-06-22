@@ -70,6 +70,9 @@ class HermesApi @Inject constructor(
     suspend fun models(): co.hermesdispatch.app.data.remote.dto.ModelsResponse =
         client.get("${base()}/v1/models") { auth() }.body()
 
+    suspend fun pushInfo(): co.hermesdispatch.app.data.remote.dto.PushInfo =
+        client.get("${base()}/v1/push/info") { auth() }.body()
+
     suspend fun setModel(provider: String, model: String) {
         client.post("${base()}/v1/models/set") {
             contentType(ContentType.Application.Json)

@@ -66,6 +66,13 @@ data class ModelsResponse(
 data class SetModelRequest(val model: String, val provider: String? = null)
 
 @Serializable
+data class PushInfo(
+    val configured: Boolean = false,
+    @SerialName("base_url") val baseUrl: String = "",
+    val topic: String = "",
+)
+
+@Serializable
 data class ProfileDto(
     val name: String,
     val model: String? = null,
