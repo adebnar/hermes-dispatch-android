@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import co.hermesdispatch.app.data.prefs.SecureSettings
 import co.hermesdispatch.app.data.repository.TaskRepository
 import co.hermesdispatch.app.domain.Task
+import co.hermesdispatch.app.ui.components.RunState
+import co.hermesdispatch.app.ui.components.runStateOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -13,8 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** Client-side segments for the dashboard's segmented control. */
+enum class TaskFilter { ALL, SCHEDULED, COMPLETED }
 
 @HiltViewModel
 class TasksViewModel @Inject constructor(
@@ -28,6 +34,22 @@ class TasksViewModel @Inject constructor(
     /** Active (non-archived) tasks, cached + live with local renames applied. */
     val tasks: StateFlow<List<Task>> = repository.observeTasks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _filter = MutableStateFlow(TaskFilter.ALL)
+    val filter: StateFlow<TaskFilter> = _filter.asStateFlow()
+
+    /** Tasks after applying the segmented-control filter (client-side). */
+    val visibleTasks: StateFlow<List<Task>> = combine(tasks, _filter) { list, filter ->
+        when (filter) {
+            TaskFilter.ALL -> list
+            TaskFilter.SCHEDULED -> list.filter { runStateOf(it.status) == RunState.SCHEDULED }
+            TaskFilter.COMPLETED -> list.filter {
+                runStateOf(it.status).let { s -> s == RunState.DONE || s == RunState.FAILED }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setFilter(filter: TaskFilter) { _filter.value = filter }
 
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()

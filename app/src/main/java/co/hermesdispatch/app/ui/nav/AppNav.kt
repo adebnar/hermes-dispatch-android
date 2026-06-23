@@ -186,6 +186,10 @@ fun AppNav(
                         defaultValue = null
                     },
                 ),
+                enterTransition = enterPush(),
+                exitTransition = exitPush(),
+                popEnterTransition = enterPop(),
+                popExitTransition = exitPop(),
             ) {
                 ChatScreen(onBack = { navController.popBackStack() })
             }

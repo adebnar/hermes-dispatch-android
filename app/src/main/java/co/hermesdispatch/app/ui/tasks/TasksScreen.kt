@@ -14,20 +14,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,9 +58,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.Task
+import co.hermesdispatch.app.ui.components.SegmentedControl
+import co.hermesdispatch.app.ui.components.StatusIndicator
 import co.hermesdispatch.app.ui.components.TitleWithProfile
+import co.hermesdispatch.app.ui.components.runStateOf
 import co.hermesdispatch.app.ui.util.TimeFormat
 import kotlinx.coroutines.launch
+
+private val FILTER_LABELS = listOf("All", "Scheduled", "Completed")
 
 private val SUGGESTIONS = listOf(
     "Summarize my unread email and draft replies",
@@ -75,7 +81,8 @@ fun TasksScreen(
     onNewTask: (String?) -> Unit,
     viewModel: TasksViewModel = hiltViewModel(),
 ) {
-    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+    val visibleTasks by viewModel.visibleTasks.collectAsStateWithLifecycle()
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -97,7 +104,21 @@ fun TasksScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { TitleWithProfile("Tasks", viewModel.activeProfile) }) },
+        topBar = {
+            TopAppBar(
+                title = { TitleWithProfile("Tasks", viewModel.activeProfile) },
+                actions = {
+                    IconButton(onClick = { viewModel.setShowArchived(!showArchived) }) {
+                        Icon(
+                            if (showArchived) Icons.Filled.Inventory2 else Icons.Filled.Archive,
+                            contentDescription = if (showArchived) "Show active" else "Show archived",
+                            tint = if (showArchived) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNewTask(null) }) {
                 Icon(Icons.Filled.Add, contentDescription = "New task")
@@ -122,22 +143,13 @@ fun TasksScreen(
                 singleLine = true,
             )
 
-            if (query.isBlank()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilterChip(
-                        selected = !showArchived,
-                        onClick = { viewModel.setShowArchived(false) },
-                        label = { Text("Active") },
-                    )
-                    FilterChip(
-                        selected = showArchived,
-                        onClick = { viewModel.setShowArchived(true) },
-                        label = { Text("Archived") },
-                    )
-                }
+            if (query.isBlank() && !showArchived) {
+                SegmentedControl(
+                    options = FILTER_LABELS,
+                    selectedIndex = filter.ordinal,
+                    onSelect = { viewModel.setFilter(TaskFilter.entries[it]) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
             }
 
             PullToRefreshBox(
@@ -158,7 +170,13 @@ fun TasksScreen(
                         swipe = SwipeAction(Icons.Filled.Unarchive, "Unarchive") { viewModel.unarchive(it) },
                     )
                     else -> ActiveList(
-                        tasks = tasks,
+                        tasks = visibleTasks,
+                        showSuggestions = filter == TaskFilter.ALL,
+                        emptyMessage = when (filter) {
+                            TaskFilter.ALL -> "No tasks yet. Tap + or pick a suggestion to put your agent to work."
+                            TaskFilter.SCHEDULED -> "No scheduled tasks. Recurring jobs show up here."
+                            TaskFilter.COMPLETED -> "No completed tasks yet."
+                        },
                         error = error,
                         onRetry = viewModel::refresh,
                         onNewTask = onNewTask,
@@ -210,6 +228,8 @@ private fun FlatList(
 @Composable
 private fun ActiveList(
     tasks: List<Task>,
+    showSuggestions: Boolean,
+    emptyMessage: String,
     error: String?,
     onRetry: () -> Unit,
     onNewTask: (String?) -> Unit,
@@ -221,14 +241,14 @@ private fun ActiveList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { SuggestionsRow(onPick = { onNewTask(it) }) }
+        if (showSuggestions) item { SuggestionsRow(onPick = { onNewTask(it) }) }
 
         error?.let { item { ErrorBanner(message = it, onRetry = onRetry) } }
 
         if (tasks.isEmpty()) {
             item {
                 Text(
-                    "No tasks yet. Tap + or pick a suggestion to put your agent to work.",
+                    emptyMessage,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(top = 24.dp),
                 )
@@ -288,7 +308,17 @@ private fun SuggestionsRow(onPick: (String) -> Unit) {
             items(SUGGESTIONS, key = { it }) { suggestion ->
                 ElevatedCard(
                     onClick = { onPick(suggestion) },
-                    modifier = Modifier.width(180.dp).height(108.dp),
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(108.dp)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(12.dp),
+                        ),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(
@@ -338,29 +368,25 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun TaskCard(task: Task, onClick: () -> Unit) {
-    val isCron = task.status.contains("cron", ignoreCase = true)
+    val state = runStateOf(task.status)
+    val label = when (state) {
+        co.hermesdispatch.app.ui.components.RunState.SCHEDULED -> "Scheduled"
+        co.hermesdispatch.app.ui.components.RunState.ACTIVE -> "Running"
+        co.hermesdispatch.app.ui.components.RunState.FAILED -> "Failed"
+        else -> ""
+    }
     val when_ = TimeFormat.relative(task.updatedAt)
-    val subtitle = listOf(if (isCron) "Scheduled" else "", when_)
-        .filter { it.isNotBlank() }.joinToString(" · ")
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    val subtitle = listOf(label, when_).filter { it.isNotBlank() }.joinToString(" · ")
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+    ) {
         Row(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (isCron) Icons.Filled.Schedule else Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
+            StatusIndicator(state)
             Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(
                     task.title,
