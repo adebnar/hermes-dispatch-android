@@ -145,7 +145,11 @@ class ChatViewModel @Inject constructor(
      * way; it applies to this conversation only, not the profile default).
      */
     fun changeModel(provider: String, model: String) {
-        send("/model $model --provider $provider")
+        // Per-session hot-swap via the gateway's /model slash command. Show a clean
+        // label (not the raw command) so the switch is visibly reflected in the
+        // thread — the gateway's own ack is a system line that lands in the
+        // (collapsed) activity pane.
+        send("/model $model --provider $provider", echoAs = "🔧 Switch model → $model")
     }
 
     private var currentStreamId: String? = null
@@ -167,13 +171,15 @@ class ChatViewModel @Inject constructor(
 
     fun removeAttachment() = _state.update { it.copy(attachment = null) }
 
-    fun send(text: String, images: List<String> = emptyList()) {
+    fun send(text: String, images: List<String> = emptyList(), echoAs: String? = null) {
         val message = text.trim()
         val attachment = _state.value.attachment?.takeIf { it.path != null }
         val attachments = listOfNotNull(attachment?.path)
         if ((message.isEmpty() && images.isEmpty() && attachments.isEmpty()) || _state.value.running) return
 
-        val label = listOfNotNull(
+        // echoAs lets callers show a friendly user-bubble label instead of the raw
+        // text actually sent (e.g. a model-switch slash command).
+        val label = echoAs ?: listOfNotNull(
             message.ifEmpty { null },
             attachment?.let { "📎 ${it.name}" },
             if (message.isEmpty() && images.isNotEmpty()) "(image)" else null,
