@@ -1,5 +1,6 @@
 package co.hermesdispatch.app.ui.scheduled
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +51,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.Schedule
 import co.hermesdispatch.app.ui.components.TitleWithProfile
+import co.hermesdispatch.app.ui.components.rememberHaptics
+import co.hermesdispatch.app.ui.util.CronText
 import co.hermesdispatch.app.ui.util.TimeFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,11 +175,12 @@ private fun ScheduleCard(
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val haptics = rememberHaptics()
     val tint = if (schedule.paused) MaterialTheme.colorScheme.surfaceVariant
     else MaterialTheme.colorScheme.primaryContainer
     val next = schedule.nextRun?.let { TimeFormat.relative(it) }.orEmpty()
     val subtitle = listOfNotNull(
-        schedule.cronExpr.ifBlank { null },
+        CronText.humanize(schedule.cronExpr).ifBlank { null },
         if (schedule.paused) "Paused" else next.ifBlank { null }?.let { "Next $it" },
     ).joinToString(" · ")
     Card {
@@ -207,6 +211,16 @@ private fun ScheduleCard(
                         subtitle,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            // Inline pause/resume with an animated icon crossfade + haptic.
+            IconButton(onClick = { haptics.tick(); onTogglePause() }) {
+                Crossfade(targetState = schedule.paused, label = "pause") { paused ->
+                    Icon(
+                        if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                        contentDescription = if (paused) "Resume" else "Pause",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

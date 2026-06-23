@@ -94,6 +94,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.hermesdispatch.app.domain.ActionItem
 import co.hermesdispatch.app.domain.Artifact
 import co.hermesdispatch.app.domain.ChatMessage
+import co.hermesdispatch.app.ui.components.rememberHaptics
 import kotlinx.coroutines.launch
 
 /** Document types offered by the attach-file picker. */
@@ -126,6 +127,7 @@ fun ChatScreen(
     var editingMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val haptics = rememberHaptics()
     val onTranscript: (String) -> Unit = { transcript ->
         input = listOf(input.trim(), transcript.trim()).filter { it.isNotEmpty() }.joinToString(" ")
     }
@@ -181,7 +183,15 @@ fun ChatScreen(
         }
     }
 
+    // Haptic cue when a run finishes (running flips true → false).
+    var wasRunning by remember { mutableStateOf(false) }
+    LaunchedEffect(state.running) {
+        if (wasRunning && !state.running) haptics.confirm()
+        wasRunning = state.running
+    }
+
     fun doSend() {
+        haptics.tick()
         viewModel.send(input, listOfNotNull(attachedImage))
         input = ""
         attachedImage = null
