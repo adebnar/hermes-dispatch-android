@@ -76,6 +76,12 @@ fun InboxScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // Refresh on resume so new cron deliverables show up on tab-return / app
+    // foreground (the VM otherwise only fetched once at creation).
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        viewModel.refresh()
+    }
+
     Scaffold(
         topBar = { TopAppBar(title = { TitleWithProfile("Inbox", viewModel.activeProfile) }) },
         snackbarHost = { SnackbarHost(snackbar) },

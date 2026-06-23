@@ -98,7 +98,12 @@ fun TasksScreen(
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+    // Refresh whenever the screen resumes — first show, returning to the tab
+    // (state is restored, so LaunchedEffect(Unit) wouldn't re-run), and when the
+    // app comes back to the foreground.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        viewModel.refresh()
+    }
 
     fun archiveWithUndo(task: Task) {
         viewModel.archive(task)

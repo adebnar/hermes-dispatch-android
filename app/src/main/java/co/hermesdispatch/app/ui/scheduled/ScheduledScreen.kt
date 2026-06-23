@@ -63,7 +63,11 @@ fun ScheduledScreen(viewModel: ScheduledViewModel = hiltViewModel()) {
     val alerting by viewModel.alerting.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Schedule?>(null) }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+    // Refresh on resume (first show, tab-return, app foreground) — a restored tab
+    // composable won't re-run LaunchedEffect(Unit).
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        viewModel.refresh()
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { TitleWithProfile("Scheduled", viewModel.activeProfile) }) },
