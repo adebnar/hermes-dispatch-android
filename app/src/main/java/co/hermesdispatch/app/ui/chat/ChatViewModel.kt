@@ -140,16 +140,20 @@ class ChatViewModel @Inject constructor(
         runCatching { repository.models() }.getOrDefault(emptyList())
 
     /**
-     * Hot-swap the model for this session by sending the agent's `/model`
-     * slash command (the dashboard supports per-session model switching this
-     * way; it applies to this conversation only, not the profile default).
+     * Set the profile's model via REST. The gateway only exposes per-session
+     * `/model` over its TUI, not the programmatic WS the bridge uses, so this
+     * applies to NEW tasks (an existing conversation keeps the model it started
+     * with). A confirmation note is shown in the thread so the change is visible.
      */
     fun changeModel(provider: String, model: String) {
-        // Per-session hot-swap via the gateway's /model slash command. Show a clean
-        // label (not the raw command) so the switch is visibly reflected in the
-        // thread — the gateway's own ack is a system line that lands in the
-        // (collapsed) activity pane.
-        send("/model $model --provider $provider", echoAs = "🔧 Switch model → $model")
+        viewModelScope.launch {
+            val ok = runCatching { repository.setModel(provider, model) }.isSuccess
+            appendMessage(
+                ChatMessage.Role.ASSISTANT,
+                if (ok) "🔧 Model set to $model — applies to new tasks."
+                else "⚠️ Couldn't change the model. Check the bridge connection.",
+            )
+        }
     }
 
     private var currentStreamId: String? = null
@@ -171,15 +175,13 @@ class ChatViewModel @Inject constructor(
 
     fun removeAttachment() = _state.update { it.copy(attachment = null) }
 
-    fun send(text: String, images: List<String> = emptyList(), echoAs: String? = null) {
+    fun send(text: String, images: List<String> = emptyList()) {
         val message = text.trim()
         val attachment = _state.value.attachment?.takeIf { it.path != null }
         val attachments = listOfNotNull(attachment?.path)
         if ((message.isEmpty() && images.isEmpty() && attachments.isEmpty()) || _state.value.running) return
 
-        // echoAs lets callers show a friendly user-bubble label instead of the raw
-        // text actually sent (e.g. a model-switch slash command).
-        val label = echoAs ?: listOfNotNull(
+        val label = listOfNotNull(
             message.ifEmpty { null },
             attachment?.let { "📎 ${it.name}" },
             if (message.isEmpty() && images.isNotEmpty()) "(image)" else null,

@@ -34,8 +34,8 @@ android {
         applicationId = "co.hermesdispatch.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "0.7.5"
+        versionCode = 33
+        versionName = "0.7.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

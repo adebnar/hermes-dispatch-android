@@ -369,7 +369,7 @@ fun ChatScreen(
         co.hermesdispatch.app.ui.components.ModelPickerDialog(
             models = models,
             current = null,
-            title = "Change model (this session)",
+            title = "Set model (applies to new tasks)",
             onPick = { provider, model -> viewModel.changeModel(provider, model); changingModel = false },
             onDismiss = { changingModel = false },
         )

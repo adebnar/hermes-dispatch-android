@@ -67,7 +67,11 @@ class ChatRepository @Inject constructor(
     /** Server-side speech-to-text: upload recorded audio, get the transcript. */
     suspend fun transcribe(audio: ByteArray): String = api.transcribe(audio).text
 
-    /** Available models for the active profile (for the per-session model picker). */
+    /** Available models for the active profile (for the model picker). */
     suspend fun models(): List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto> =
         api.models().models
+
+    /** Set the active profile's model (REST). Applies to new tasks — the gateway
+     *  has no per-session model API over the programmatic WS the bridge uses. */
+    suspend fun setModel(provider: String, model: String) = api.setModel(provider, model)
 }
