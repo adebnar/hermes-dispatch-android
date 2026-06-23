@@ -3,10 +3,16 @@
 **An open-source, mobile-first Android app for your [Hermes](https://github.com/NousResearch/hermes-agent) agents.**
 Fire off tasks by voice or text, watch your self-hosted agent work in real time, control its scheduled jobs, and get progress on your lock screen — all from your phone.
 
-### 📲 Download
-**[⬇️ Latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest)** — grab `hermes-dispatch-oss.apk` from the latest release and install it (you'll need to allow "install from unknown sources").
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20the%20project-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/andrew65386)
 
-> Direct link to the newest build: <https://github.com/adebnar/hermes-dispatch-android/releases/latest/download/hermes-dispatch-oss.apk>
+> 💜 **Enjoying Hermes Dispatch?** [**☕ Support development on Ko-fi →**](https://ko-fi.com/andrew65386) — donations fund new features and keep the project alive.
+
+### 📲 Download
+**[⬇️ Latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest)** — grab `hermes-dispatch-oss.apk` from the latest stable release and install it (you'll need to allow "install from unknown sources").
+
+> Stable: <https://github.com/adebnar/hermes-dispatch-android/releases/latest/download/hermes-dispatch-oss.apk>
+> Beta (pre-release, from `development`): grab the newest **pre-release** on the [releases page](https://github.com/adebnar/hermes-dispatch-android/releases).
 
 The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
@@ -141,8 +147,21 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 
+## Releases & branches
+- **`main`** — stable. Tagged releases (`vX.Y.Z`) attach the signed `hermes-dispatch-oss.apk`.
+- **`development`** — active work. Builds are published as **beta pre-releases** (`vX.Y.Z-beta.N`, marked "pre-release") so you can opt in early. The README's download links always point at the latest stable; betas live on the [releases page](https://github.com/adebnar/hermes-dispatch-android/releases).
+
 ## Contributing & security
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md). PRs target `development`.
+
+## Support this project
+If Hermes Dispatch is useful to you, please consider supporting development:
+
+**[☕ Buy me a coffee on Ko-fi →](https://ko-fi.com/andrew65386)**
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/andrew65386)
+
+Every contribution helps fund new features and ongoing maintenance. Thank you! 🙏
 
 ## License
-[Apache-2.0](LICENSE).
+[GPL-3.0](LICENSE) © Andrew Debnar. This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License v3.
