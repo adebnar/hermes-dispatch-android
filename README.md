@@ -75,9 +75,10 @@ Your `.env` needs:
 - `HERMES_URL=http://127.0.0.1:9119` — your dashboard.
 - `HERMES_TOKEN=` — **leave empty**; for a local dashboard the bridge auto-reads the token.
 - `BRIDGE_TOKEN=<a strong random secret>` — **this is what you'll type into the app.**
-  Generate one: `python3 -c "import secrets;print(secrets.token_urlsafe(32))"`
+  **Generate it yourself** (don't have an assistant create or store it):
+  `python3 -c "import secrets;print(secrets.token_urlsafe(32))"`
 
-- **🤖 ask Hermes:** *"Generate a strong BRIDGE_TOKEN, write a `.env` for hermes-dispatch-bridge with HERMES_URL=http://127.0.0.1:9119, and install a launchd/systemd service so the bridge runs on boot."*
+- **🤖 ask Hermes (no secrets):** *"Install a launchd/systemd service so hermes-dispatch-bridge runs on boot with HERMES_URL=http://127.0.0.1:9119 — leave my `.env` and BRIDGE_TOKEN to me."*
 
 ### 3. Find your bridge URL + token — 🧑
 The phone needs the bridge's **URL** and **token**.
