@@ -98,9 +98,11 @@ ipconfig getifaddr en0   # macOS LAN          → http://192.168.x.y:8099
 hostname -I              # Linux LAN (first address)
 ```
 
-> The app accepts plain `http://` because you're on your own private network
-> (Tailscale is WireGuard-encrypted). HTTPS via Tailscale Serve is preferred — it
-> validates against the system trust store with no extra config.
+> ⚠️ **Use an HTTPS bridge URL** (Tailscale Serve). The app validates it against the
+> system trust store with no extra setup. Plain `http://` is accepted **only because
+> this build ships a `network_security_config` that permits cleartext on your private
+> network** (Tailscale/LAN). If you change that — build with cleartext disabled, or
+> expose the bridge beyond your private network — the **bridge must be HTTPS**.
 
 **Get the bridge token** (the `BRIDGE_TOKEN` you set in step 2):
 ```bash
@@ -115,7 +117,7 @@ progress to your lock screen. To self-host ntfy instead of the public server, se
 ### 5. Install & pair the app — 🧑
 1. Install the [latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest).
 2. Open it and on the pairing screen enter:
-   - **Bridge URL** — e.g. `http://100.111.188.14:8099`
+   - **Bridge URL** — your HTTPS Tailscale Serve URL, e.g. `https://your-machine.your-tailnet.ts.net` (or `http://100.x.y.z:8099` if you're using the plain-HTTP private-network path above).
    - **Bridge token** — your `BRIDGE_TOKEN`
    - **Profile** (optional) — leave blank, or pick one later in Settings.
 3. Tap **Connect**. You're in — create a task with the ＋ button or a suggestion.
