@@ -74,12 +74,42 @@ class ChatViewModel @Inject constructor(
                 runCatching { repository.history(sid) }.getOrNull()?.forEach { (role, text) ->
                     appendMessage(role, text)
                 }
+                // If a run is still streaming server-side, reattach to its live
+                // feed so the task page updates without leaving + re-entering.
+                // History is loaded first so the live turn renders after it.
+                if (runCatching { repository.isRunning(sid) }.getOrDefault(false)) {
+                    attachToRun(sid)
+                }
             }
             viewModelScope.launch {
                 tasks.observeLabel(sid).collect { label ->
                     _title.value = label?.ifBlank { null } ?: initialTitle
                 }
             }
+        }
+    }
+
+    /**
+     * Resubscribe to an already-running session's live stream. The bridge buffers
+     * + replays the in-progress turn's frames, so a fresh assistant bubble is
+     * filled from the start (mirroring [send]); the user prompt for this turn
+     * comes from history. Guarded by [ChatRepository.isRunning] so a finished
+     * (but still-buffered) run isn't replayed on top of history.
+     */
+    private fun attachToRun(sid: String) {
+        if (_state.value.running) return
+        currentStreamId = sid
+        val assistant = appendMessage(ChatMessage.Role.ASSISTANT, "")
+        _state.update { it.copy(running = true, error = null) }
+        streamJob = viewModelScope.launch {
+            runCatching { streamWithRetry(sid, assistant.id) }
+                .onFailure { e ->
+                    if (e !is kotlinx.coroutines.CancellationException) {
+                        _state.update { it.copy(error = e.message ?: "Stream failed") }
+                    }
+                }
+            _state.update { it.copy(running = false) }
+            currentStreamId = null
         }
     }
 

@@ -84,6 +84,10 @@ class HermesApi @Inject constructor(
     suspend fun profiles(): ProfilesResponse =
         client.get("${base()}/v1/profiles") { auth() }.body()
 
+    /** Bridge + gateway versions for the About screen. */
+    suspend fun info(): co.hermesdispatch.app.data.remote.dto.InfoDto =
+        client.get("${base()}/v1/info") { auth() }.body()
+
     suspend fun messages(sessionId: String): List<co.hermesdispatch.app.data.remote.dto.MessageDto> =
         client.get("${base()}/v1/tasks/$sessionId/messages") { auth() }.body()
 
@@ -111,6 +115,11 @@ class HermesApi @Inject constructor(
     /** Server-Sent Events for a held run. */
     fun streamTask(streamId: String) =
         sse.stream("${base()}/v1/tasks/$streamId/events") { auth() }
+
+    /** Whether the session has a run actively streaming server-side right now. */
+    suspend fun taskLive(sessionId: String): Boolean =
+        client.get("${base()}/v1/tasks/$sessionId/live") { auth() }
+            .body<Map<String, Boolean>>()["live"] == true
 
     suspend fun cancelTask(streamId: String) {
         client.post("${base()}/v1/tasks/$streamId/cancel") { auth() }

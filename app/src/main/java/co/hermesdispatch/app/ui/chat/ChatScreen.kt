@@ -34,6 +34,8 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
@@ -67,6 +69,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -505,17 +508,55 @@ private fun linkify(text: String, linkColor: Color): AnnotatedString {
 
 @Composable
 private fun ActionsPane(actions: List<ActionItem>) {
-    Column(modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp).padding(8.dp)) {
-        Text("Agent activity", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
-        LazyColumn(reverseLayout = true) {
-            items(actions.asReversed(), key = { it.id }) { action ->
-                Text(
-                    "• ${action.label}",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                )
+    // Collapsed by default so the agent's chatter doesn't crowd the chat thread;
+    // tap the header to expand the full activity log.
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) "Collapse agent activity" else "Expand agent activity",
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                "Agent activity",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(start = 6.dp),
+            )
+            // When collapsed, surface the latest line so there's still a hint of
+            // what the agent is doing without taking the whole pane.
+            if (!expanded) {
+                actions.lastOrNull()?.let { latest ->
+                    Text(
+                        latest.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f),
+                    )
+                }
+            }
+        }
+        if (expanded) {
+            LazyColumn(
+                reverseLayout = true,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp),
+            ) {
+                items(actions.asReversed(), key = { it.id }) { action ->
+                    Text(
+                        "• ${action.label}",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
             }
         }
     }

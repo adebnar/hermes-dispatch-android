@@ -63,6 +63,9 @@ class AuthRepository @Inject constructor(
 
     suspend fun pushInfo() = runCatching { api.pushInfo() }.getOrNull()
 
+    /** Bridge + gateway versions for the About screen (null if unreachable). */
+    suspend fun serverInfo() = runCatching { api.info() }.getOrNull()
+
     suspend fun setModel(provider: String, model: String): Result<Unit> =
         runCatching { api.setModel(provider, model) }
 

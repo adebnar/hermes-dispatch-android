@@ -68,6 +68,12 @@ data class ClarifyRequest(val answer: String)
 data class MessageDto(val role: String, val text: String)
 
 @Serializable
+data class InfoDto(
+    @SerialName("bridge_version") val bridgeVersion: String? = null,
+    @SerialName("gateway_version") val gatewayVersion: String? = null,
+)
+
+@Serializable
 data class ModelOptionDto(val provider: String, val model: String)
 
 @Serializable

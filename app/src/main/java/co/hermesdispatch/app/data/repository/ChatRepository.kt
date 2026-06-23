@@ -43,6 +43,9 @@ class ChatRepository @Inject constructor(
 
     fun stream(streamId: String): Flow<StreamEvent> = api.streamTask(streamId)
 
+    /** Whether a run for this session is actively streaming server-side. */
+    suspend fun isRunning(sessionId: String): Boolean = api.taskLive(sessionId)
+
     suspend fun cancel(streamId: String) = api.cancelTask(streamId)
 
     suspend fun steer(streamId: String, message: String) = api.steerTask(streamId, message)

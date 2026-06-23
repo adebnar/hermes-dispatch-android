@@ -38,6 +38,9 @@ data class SettingsUiState(
     val reportPreview: String? = null,
     val preparingReport: Boolean = false,
     val alertSoundTitle: String = "Default",
+    val appVersion: String = "",
+    val gatewayVersion: String = "",
+    val bridgeVersion: String = "",
     val signedOut: Boolean = false,
 )
 
@@ -64,6 +67,16 @@ class SettingsViewModel @Inject constructor(
             auth.pushInfo()?.let { p ->
                 _state.update {
                     it.copy(pushConfigured = p.configured, pushTopic = p.topic, pushBaseUrl = p.baseUrl)
+                }
+            }
+        }
+        viewModelScope.launch {
+            auth.serverInfo()?.let { info ->
+                _state.update {
+                    it.copy(
+                        gatewayVersion = info.gatewayVersion.orEmpty(),
+                        bridgeVersion = info.bridgeVersion.orEmpty(),
+                    )
                 }
             }
         }
@@ -94,6 +107,7 @@ class SettingsViewModel @Inject constructor(
         encryptedPush = auth.encryptedPushEnabled(),
         bugReporting = auth.bugReporting(),
         alertSoundTitle = soundTitle(),
+        appVersion = co.hermesdispatch.app.BuildConfig.VERSION_NAME,
     )
 
     private fun soundTitle(): String = when (val pref = auth.alertSoundUri()) {

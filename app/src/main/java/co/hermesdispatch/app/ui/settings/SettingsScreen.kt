@@ -259,6 +259,14 @@ fun SettingsScreen(
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()
 
+            Text("About", style = MaterialTheme.typography.titleMedium)
+            LabeledValue("App version", state.appVersion.ifBlank { "—" })
+            LabeledValue("Gateway (Hermes)", state.gatewayVersion.ifBlank { "—" })
+            LabeledValue("Bridge", state.bridgeVersion.ifBlank { "—" })
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider()
+
             OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
                 Text("Sign out")
             }
