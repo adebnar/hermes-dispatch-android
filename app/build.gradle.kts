@@ -18,7 +18,7 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "co.hermesdispatch.app"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         if (keystorePropsFile.exists()) {
@@ -34,9 +34,9 @@ android {
     defaultConfig {
         applicationId = "co.hermesdispatch.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 25
-        versionName = "0.5.3"
+        targetSdk = 36
+        versionCode = 26
+        versionName = "0.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -76,9 +76,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -88,6 +85,13 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
+    }
+}
+
+// Kotlin 2.x: jvmTarget moved out of android.kotlinOptions into compilerOptions.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

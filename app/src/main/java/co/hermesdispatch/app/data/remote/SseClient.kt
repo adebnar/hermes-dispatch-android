@@ -3,7 +3,7 @@ package co.hermesdispatch.app.data.remote
 import co.hermesdispatch.app.data.remote.sse.SseParser
 import co.hermesdispatch.app.data.remote.sse.StreamEvent
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
@@ -35,8 +35,8 @@ class SseClient @Inject constructor(
             // SSE runs as long as the agent works — disable the request/socket
             // timeouts for the stream (otherwise long tasks hit the 60s cap).
             timeout {
-                requestTimeoutMillis = HttpTimeout.INFINITE_TIMEOUT_MS
-                socketTimeoutMillis = HttpTimeout.INFINITE_TIMEOUT_MS
+                requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                socketTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
             }
             configure()
         }.execute { response ->

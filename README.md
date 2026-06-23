@@ -16,6 +16,14 @@ Fire off tasks by voice or text, watch your self-hosted agent work in real time,
 
 The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
+## Screenshots
+
+| Tasks | Inbox | Scheduled | Chat | Settings |
+|---|---|---|---|---|
+| ![Tasks](docs/screenshots/tasks.png) | ![Inbox](docs/screenshots/inbox.png) | ![Scheduled](docs/screenshots/scheduled.png) | ![Chat](docs/screenshots/chat.png) | ![Settings](docs/screenshots/settings.png) |
+
+<sub>Screenshots use synthetic demo data.</sub>
+
 ## Features
 - 📋 **Tasks** — history of what your agent has done, with live status; **search** sessions, **swipe to archive** (with Undo), open one for the full conversation, **rename** it, **change its model**, or **long-press a sent message to edit & resend**.
 - ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
