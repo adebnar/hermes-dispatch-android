@@ -30,4 +30,4 @@ Thanks for your interest! This is an early-stage open-source project.
 Keep PRs focused and incremental. Describe what changed and how you verified it.
 CI (unit tests + lint + assemble) must pass.
 
-By contributing you agree your contributions are licensed under [Apache-2.0](LICENSE).
+By contributing you agree your contributions are licensed under [GPL-3.0](LICENSE).
