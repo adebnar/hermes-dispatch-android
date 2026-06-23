@@ -300,31 +300,12 @@ fun ChatScreen(
     if (changingModel) {
         var models by remember { mutableStateOf<List<co.hermesdispatch.app.data.remote.dto.ModelOptionDto>>(emptyList()) }
         LaunchedEffect(Unit) { models = viewModel.modelOptions() }
-        AlertDialog(
-            onDismissRequest = { changingModel = false },
-            title = { Text("Change model") },
-            text = {
-                if (models.isEmpty()) {
-                    Text("Loading models…")
-                } else {
-                    androidx.compose.foundation.lazy.LazyColumn(
-                        modifier = Modifier.heightIn(max = 360.dp),
-                    ) {
-                        items(models, key = { "${it.provider}/${it.model}" }) { opt ->
-                            androidx.compose.material3.ListItem(
-                                headlineContent = { Text(opt.model) },
-                                supportingContent = { Text(opt.provider) },
-                                modifier = Modifier.clickable {
-                                    viewModel.changeModel(opt.provider, opt.model)
-                                    changingModel = false
-                                },
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { changingModel = false }) { Text("Cancel") } },
+        co.hermesdispatch.app.ui.components.ModelPickerDialog(
+            models = models,
+            current = null,
+            title = "Change model (this session)",
+            onPick = { provider, model -> viewModel.changeModel(provider, model); changingModel = false },
+            onDismiss = { changingModel = false },
         )
     }
 

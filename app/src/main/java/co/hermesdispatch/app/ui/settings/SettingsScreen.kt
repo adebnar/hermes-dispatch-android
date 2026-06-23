@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import co.hermesdispatch.app.ui.components.ModelPickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -166,22 +167,26 @@ fun SettingsScreen(
 
             Text("Model", style = MaterialTheme.typography.titleMedium)
             Text(
-                "The model this profile's agent uses. Pick a working one if replies fail.",
+                "The model this profile's agent uses — any model your Hermes server has " +
+                    "access to. Pick a working one if replies fail.",
                 style = MaterialTheme.typography.bodySmall,
             )
-            var modelMenu by remember { mutableStateOf(false) }
-            Box {
-                OutlinedButton(onClick = { modelMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(state.currentModel.ifBlank { "Select model" })
-                }
-                DropdownMenu(expanded = modelMenu, onDismissRequest = { modelMenu = false }) {
-                    state.models.forEach { opt ->
-                        DropdownMenuItem(
-                            text = { Text(opt.model) },
-                            onClick = { viewModel.setModel(opt); modelMenu = false },
+            var modelPickerOpen by remember { mutableStateOf(false) }
+            OutlinedButton(onClick = { modelPickerOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(state.currentModel.ifBlank { "Select model" })
+            }
+            if (modelPickerOpen) {
+                ModelPickerDialog(
+                    models = state.models,
+                    current = state.currentModel,
+                    onPick = { provider, model ->
+                        viewModel.setModel(
+                            co.hermesdispatch.app.data.remote.dto.ModelOptionDto(provider, model),
                         )
-                    }
-                }
+                        modelPickerOpen = false
+                    },
+                    onDismiss = { modelPickerOpen = false },
+                )
             }
 
             Spacer(Modifier.height(8.dp))
