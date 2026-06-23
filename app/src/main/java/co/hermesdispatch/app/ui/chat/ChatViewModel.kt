@@ -136,14 +136,70 @@ class ChatViewModel @Inject constructor(
                     is ChatRepository.StartResult.Run -> {
                         sessionId = result.sessionId ?: sessionId
                         currentStreamId = result.streamId
-                        repository.stream(result.streamId).collect { reduce(it, assistant.id) }
+                        streamWithRetry(result.streamId, assistant.id)
                     }
                 }
             }.onFailure { e ->
-                _state.update { it.copy(running = false, error = e.message ?: "Stream failed") }
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    _state.update { it.copy(running = false, error = e.message ?: "Stream failed") }
+                }
             }
             _state.update { it.copy(running = false) }
             currentStreamId = null
+        }
+    }
+
+    /**
+     * Collect the run's SSE stream, resilient to transient socket drops
+     * ("Software caused connection abort") on long local-model turns. The bridge
+     * buffers + replays each run's frames, so on a drop we resubscribe (replaying
+     * from the start — we reset the assistant bubble so deltas don't double). If
+     * the run already finished, a post-completion drop is ignored; if retries are
+     * exhausted, we reconcile from server history instead of showing an error.
+     */
+    private suspend fun streamWithRetry(streamId: String, assistantId: Long) {
+        var attempt = 0
+        var terminal = false
+        while (true) {
+            try {
+                if (attempt > 0) setAssistantText(assistantId, "") // replay rebuilds from start
+                repository.stream(streamId).collect { ev ->
+                    if (ev is StreamEvent.Completed || ev is StreamEvent.Error ||
+                        ev is StreamEvent.Interrupted
+                    ) {
+                        terminal = true
+                    }
+                    reduce(ev, assistantId)
+                }
+                return // stream ended cleanly (server sent its terminal sentinel)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (terminal) return // run finished; ignore a post-completion abort
+                if (attempt >= MAX_STREAM_RETRIES) {
+                    // The run is likely still finishing server-side; reconcile from
+                    // history rather than surfacing a transient socket error.
+                    reconcileFromHistory()
+                    return
+                }
+                attempt++
+                kotlinx.coroutines.delay(500L * attempt)
+            }
+        }
+    }
+
+    /** Replace the in-memory thread with canonical server history (post-drop). */
+    private suspend fun reconcileFromHistory() {
+        val sid = sessionId ?: return
+        val history = runCatching { repository.history(sid) }.getOrNull() ?: return
+        if (history.isEmpty()) return
+        _state.update { s ->
+            s.copy(
+                messages = history.mapIndexed { i, (role, text) ->
+                    ChatMessage(id = -(i.toLong()) - 1, role = role, text = text)
+                },
+                error = null,
+            )
         }
     }
 
@@ -223,6 +279,10 @@ class ChatViewModel @Inject constructor(
         s.copy(messages = s.messages.map { if (it.id == id) it.copy(text = it.text + delta) else it })
     }
 
+    private fun setAssistantText(id: Long, text: String) = _state.update { s ->
+        s.copy(messages = s.messages.map { if (it.id == id) it.copy(text = text) else it })
+    }
+
     private fun setAssistantIfEmpty(id: Long, text: String) = _state.update { s ->
         s.copy(messages = s.messages.map {
             if (it.id == id && it.text.isBlank()) it.copy(text = text) else it
@@ -255,6 +315,7 @@ class ChatViewModel @Inject constructor(
 
     companion object {
         const val NEW = "new"
+        private const val MAX_STREAM_RETRIES = 3
         private val completedJson = Json { ignoreUnknownKeys = true; isLenient = true }
     }
 }
