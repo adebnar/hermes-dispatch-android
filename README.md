@@ -25,15 +25,15 @@ The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https:
 <sub>Screenshots use synthetic demo data.</sub>
 
 ## Features
-- 📋 **Tasks** — history of what your agent has done, with live status; **search** sessions, **swipe to archive** (with Undo), open one for the full conversation, **rename** it, **change its model**, or **long-press a sent message to edit & resend**.
-- ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, with pause / resume / run-now / delete and **inline editing** of a job's name, prompt, and schedule.
-- 🗣️ **Voice or text** task creation (on-device speech-to-text).
-- 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with mid-run approvals and clarifications.
+- 📋 **Tasks dashboard** — a **quick-action bar** (voice / image / document / clipboard), an **All · Scheduled · Completed** segmented filter, and animated run-state icons (running / done / failed). History with live status, **search**, **swipe to archive** (with Undo), open for the full conversation, **rename**, or **long-press a sent message to edit & resend**.
+- 🗣️📷📎 **Multi-modal task creation** — **voice** (on-device or server STT) in a sheet with a live amplitude **waveform**; **camera / gallery images**; **document attach** (PDF / CSV / text — uploaded to your Hermes so the agent can read it); and **clipboard** quick-paste.
+- ⏰ **Scheduled** — recurring (cron) jobs your agent classifies, shown in **plain English** ("Every weekday at 9:00 AM") with a next-run countdown, inline animated **pause / resume**, run-now, delete, and **inline editing** of name, prompt, and schedule.
+- 🔴 **Live execution** — stream the agent's text + tool-use as it happens, with a collapsible **agent-activity** pane, mid-run approvals and clarifications, and haptic cues on send / completion.
 - 📥 **Inbox** — cron jobs that "deliver to this desktop" show up as clean **result** cards (just the agent's output, rendered). **Swipe to archive**, **pin/delete** (app-only — the files on disk are never touched), unread dots, and a per-job **bell** plus a global "alert on failures" so only what you care about buzzes. Subscribe a job to alerts straight from the **Scheduled** tab too, and pick a **custom alert sound** in Settings.
 - 🔔 **Lock-screen progress** with the app closed, via UnifiedPush/ntfy — no Google services required. Optional **end-to-end encryption** so the relay only sees ciphertext.
 - 🐞 **Bug reporting** (opt-in) — capture the app's own logs into a **redacted** diagnostic report (secrets/keys/tokens stripped), review it, and share as a file.
 - 👥 **Profiles** — switch between your Hermes profiles (e.g. work/personal); runs, tasks, and the Inbox scope to the selected one.
-- 🤖 **Model picker**, **editable connection** (Bridge URL / token), and an optional **server-side transcription** toggle in Settings.
+- 🤖 **Settings** — model picker (sets the profile's model, applied to new tasks), **editable connection** (Bridge URL / token), an optional **server-side transcription** toggle, custom alert sound, and an **About** panel showing the app, gateway (Hermes), and bridge versions.
 - 🔗 **Rich result cards** — Sheets/Docs/Drive links the agent returns render as tappable cards; tasks are grouped by recency.
 
 ---
@@ -151,13 +151,16 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 | 9 | Inbox v2: result-only cards, swipe-archive / pin / delete (app-only), unread + failure alerts, opt-in redacted bug reports | ✅ |
 | 10 | Cron-side alert toggle (Scheduled tab) + custom alert sound (per-channel) | ✅ |
 | 11 | Active-profile shown on Tasks/Inbox/Scheduled; system notification-settings shortcut | ✅ |
-| 12 | Cron created under the active profile; session search + server-side archive; per-session model switch | ✅ |
+| 12 | Cron created under the active profile; session search + server-side archive; model switch | ✅ |
+| 13 | iOS-parity UI polish: quick-action bar + segmented filter + animated status, voice waveform sheet, document attach, clipboard, human-readable cron, About panel, motion + haptics | ✅ |
 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 
+> Note on model switching: the picker sets the **profile's** model (applied to new tasks). The Hermes gateway exposes its per-session `/model` only over its TUI, not the programmatic API the bridge uses, so an in-progress conversation keeps the model it started with.
+
 ## Releases & branches
 - **`main`** — stable. Tagged releases (`vX.Y.Z`) build the `release` variant → app id `co.hermesdispatch.app`, label "Hermes Dispatch", asset `hermes-dispatch-oss.apk`.
-- **`development`** — active work (currently the **AGP 9 / Kotlin 2.3 / Hilt 2.59** toolchain). Builds the `beta` variant → app id `co.hermesdispatch.app.beta`, label "Hermes Dispatch Beta", versionName `…​-beta`, asset `hermes-dispatch-oss-beta.apk`, published as a **pre-release** (`vX.Y.Z-beta.N`). The distinct app id means **beta installs side-by-side with stable**.
+- **`development`** — active work on the **AGP 9 / Kotlin 2.3 / Hilt 2.59** toolchain (now also on `main`). Builds the `beta` variant → app id `co.hermesdispatch.app.beta`, label "Hermes Dispatch Beta", versionName `…​-beta`, asset `hermes-dispatch-oss-beta.apk`, published as a **pre-release** (`vX.Y.Z-beta.N`). The distinct app id means **beta installs side-by-side with stable**.
 - **Promotion:** merging `development` → `main` and releasing the **`release`** variant drops the `.beta` suffix/label automatically — same code, no beta-specific changes to undo — so it ships as the main app.
 
 > Toolchain note: `development` targets the absolute-latest where upstream allows. **Kotlin 2.4** (no KSP release yet) and **compileSdk 37 / Compose 2026.x / latest AndroidX** (the `android-37` platform isn't published to the SDK manager yet) are held back until those land; `development` will bump to them then.
