@@ -1,11 +1,11 @@
 [versions]
-# AGP kept on the latest 8.x stable: AGP 9 moves to built-in Kotlin (drops the
-# kotlin-android plugin) — a separate migration. 8.13.2 still supports SDK 36.
-agp = "8.13.2"
-# Kotlin capped at 2.2.x: Hilt 2.57.2 (latest for AGP 8) reads Kotlin metadata
-# only up to 2.2.0; Kotlin 2.3 metadata needs Hilt 2.59 → AGP 9.
-kotlin = "2.2.21"
-ksp = "2.2.21-2.0.5"
+# AGP 9 (development/beta): built-in Kotlin (no kotlin-android plugin). Kotlin
+# capped at 2.3.x (no KSP for 2.4) and compileSdk at 36 (android-37 platform not
+# yet published) — so the very latest AndroidX/Compose (which need SDK 37) stay
+# pinned below until those land upstream.
+agp = "9.2.1"
+kotlin = "2.3.21"
+ksp = "2.3.9"
 # AndroidX/Compose held at the latest versions compatible with AGP 8.13 /
 # compileSdk 36. The newest (core-ktx 1.19, lifecycle 2.11, Compose BOM 2026.06,
 # Hilt 2.59) require AGP 9.1+ / compileSdk 37 — a separate AGP-9 migration.
@@ -14,7 +14,7 @@ lifecycle = "2.9.4"
 activityCompose = "1.10.1"
 composeBom = "2025.06.01"
 navigationCompose = "2.9.5"
-hilt = "2.57.2"
+hilt = "2.59.2"
 hiltNavigationCompose = "1.2.0"
 ktor = "3.5.0"
 kotlinxSerialization = "1.11.0"

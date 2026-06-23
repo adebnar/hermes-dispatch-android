@@ -12,7 +12,7 @@ Fire off tasks by voice or text, watch your self-hosted agent work in real time,
 **[⬇️ Latest release APK](https://github.com/adebnar/hermes-dispatch-android/releases/latest)** — grab `hermes-dispatch-oss.apk` from the latest stable release and install it (you'll need to allow "install from unknown sources").
 
 > Stable: <https://github.com/adebnar/hermes-dispatch-android/releases/latest/download/hermes-dispatch-oss.apk>
-> Beta (pre-release, from `development`): grab the newest **pre-release** on the [releases page](https://github.com/adebnar/hermes-dispatch-android/releases).
+> Beta (pre-release, from `development`): grab `hermes-dispatch-oss-beta.apk` from the newest **pre-release** on the [releases page](https://github.com/adebnar/hermes-dispatch-android/releases). The beta is a **separate app** ("Hermes Dispatch Beta", id `…​.beta`) that installs **alongside** the stable one, so you can try new builds without losing your setup.
 
 The `oss` build is Google-library-free (F-Droid-friendly) and uses [ntfy](https://ntfy.sh)/UnifiedPush for background notifications.
 
@@ -156,8 +156,11 @@ and a matching keystore (`keytool -genkeypair -keystore release.keystore -alias 
 Deferred (additive later): F-Droid / Play Store listings, making the repos public.
 
 ## Releases & branches
-- **`main`** — stable. Tagged releases (`vX.Y.Z`) attach the signed `hermes-dispatch-oss.apk`.
-- **`development`** — active work. Builds are published as **beta pre-releases** (`vX.Y.Z-beta.N`, marked "pre-release") so you can opt in early. The README's download links always point at the latest stable; betas live on the [releases page](https://github.com/adebnar/hermes-dispatch-android/releases).
+- **`main`** — stable. Tagged releases (`vX.Y.Z`) build the `release` variant → app id `co.hermesdispatch.app`, label "Hermes Dispatch", asset `hermes-dispatch-oss.apk`.
+- **`development`** — active work (currently the **AGP 9 / Kotlin 2.3 / Hilt 2.59** toolchain). Builds the `beta` variant → app id `co.hermesdispatch.app.beta`, label "Hermes Dispatch Beta", versionName `…​-beta`, asset `hermes-dispatch-oss-beta.apk`, published as a **pre-release** (`vX.Y.Z-beta.N`). The distinct app id means **beta installs side-by-side with stable**.
+- **Promotion:** merging `development` → `main` and releasing the **`release`** variant drops the `.beta` suffix/label automatically — same code, no beta-specific changes to undo — so it ships as the main app.
+
+> Toolchain note: `development` targets the absolute-latest where upstream allows. **Kotlin 2.4** (no KSP release yet) and **compileSdk 37 / Compose 2026.x / latest AndroidX** (the `android-37` platform isn't published to the SDK manager yet) are held back until those land; `development` will bump to them then.
 
 ## Contributing & security
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the API contract in [`docs/API-CONTRACT.md`](docs/API-CONTRACT.md). PRs target `development`.

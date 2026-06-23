@@ -2,7 +2,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
@@ -35,8 +34,8 @@ android {
         applicationId = "co.hermesdispatch.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "0.6.0"
+        versionCode = 27
+        versionName = "0.7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -66,9 +65,24 @@ android {
             if (keystorePropsFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            manifestPlaceholders["appLabel"] = "Hermes Dispatch"
+        }
+        // Beta channel (built from `development`). A distinct applicationId
+        // (`…​.beta`) + label let it install ALONGSIDE the stable app. When
+        // `development` is promoted to `main` and released as the normal
+        // `release` variant, the `.beta` suffix and label drop away, so it
+        // becomes the main app.
+        create("beta") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            manifestPlaceholders["appLabel"] = "Hermes Dispatch Beta"
+            matchingFallbacks += "release"
+            isDebuggable = false
         }
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] = "Hermes Dispatch Debug"
         }
     }
 
