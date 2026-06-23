@@ -20,15 +20,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +84,7 @@ private val SUGGESTIONS = listOf(
 fun TasksScreen(
     onTaskClick: (String, String) -> Unit,
     onNewTask: (String?) -> Unit,
+    onQuickAction: (String) -> Unit = {},
     viewModel: TasksViewModel = hiltViewModel(),
 ) {
     val visibleTasks by viewModel.visibleTasks.collectAsStateWithLifecycle()
@@ -144,11 +150,12 @@ fun TasksScreen(
             )
 
             if (query.isBlank() && !showArchived) {
+                QuickActionBar(onQuickAction)
                 SegmentedControl(
                     options = FILTER_LABELS,
                     selectedIndex = filter.ordinal,
                     onSelect = { viewModel.setFilter(TaskFilter.entries[it]) },
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
 
@@ -293,6 +300,29 @@ private fun SwipeCard(task: Task, action: SwipeAction, content: @Composable () -
             }
         },
     ) { content() }
+}
+
+@Composable
+private fun QuickActionBar(onQuickAction: (String) -> Unit) {
+    val actions = listOf(
+        Triple("voice", Icons.Filled.Mic, "Voice task"),
+        Triple("gallery", Icons.Filled.Image, "Image task"),
+        Triple("document", Icons.Filled.AttachFile, "Document task"),
+        Triple("clipboard", Icons.Filled.ContentPaste, "Paste task"),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        actions.forEach { (mode, icon, desc) ->
+            FilledTonalIconButton(
+                onClick = { onQuickAction(mode) },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(icon, contentDescription = desc)
+            }
+        }
+    }
 }
 
 @Composable

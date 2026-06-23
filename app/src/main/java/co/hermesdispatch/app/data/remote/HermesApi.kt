@@ -112,6 +112,14 @@ class HermesApi @Inject constructor(
             setBody(req)
         }.body()
 
+    /** Upload a document to the dashboard's managed-files area; returns its path. */
+    suspend fun uploadFile(filename: String, dataUrl: String): String =
+        client.post("${base()}/v1/files/upload") {
+            contentType(ContentType.Application.Json)
+            auth()
+            setBody(co.hermesdispatch.app.data.remote.dto.FileUploadRequest(filename, dataUrl))
+        }.body<co.hermesdispatch.app.data.remote.dto.FileUploadResponse>().path
+
     /** Server-Sent Events for a held run. */
     fun streamTask(streamId: String) =
         sse.stream("${base()}/v1/tasks/$streamId/events") { auth() }

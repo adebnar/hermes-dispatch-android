@@ -18,12 +18,14 @@ import kotlinx.coroutines.launch
 
 enum class VoiceState { IDLE, LISTENING, TRANSCRIBING, UNAVAILABLE }
 
-/** Imperative handle returned to the UI: [state], live [partial] text, [start], [stop]. */
+/** Imperative handle returned to the UI: [state], live [partial] text, [start], [stop].
+ *  [amplitude] is a normalized 0..1 mic level for the recording visualizer. */
 class SpeechController internal constructor(
     val state: State<VoiceState>,
     val partial: State<String>,
     val start: () -> Unit,
     val stop: () -> Unit = {},
+    val amplitude: State<Float>,
 )
 
 /**
@@ -39,6 +41,7 @@ fun rememberSpeechController(onFinalText: (String) -> Unit): SpeechController {
     val available = remember { SpeechRecognizer.isRecognitionAvailable(context) }
     val state = remember { mutableStateOf(if (available) VoiceState.IDLE else VoiceState.UNAVAILABLE) }
     val partial = remember { mutableStateOf("") }
+    val amplitude = remember { mutableStateOf(0f) }
 
     val recognizer = remember {
         if (available) SpeechRecognizer.createSpeechRecognizer(context) else null
@@ -58,12 +61,16 @@ fun rememberSpeechController(onFinalText: (String) -> Unit): SpeechController {
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { state.value = VoiceState.LISTENING }
             override fun onBeginningOfSpeech() { state.value = VoiceState.LISTENING }
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                // RMS is roughly -2..10 dB; map to 0..1 for the visualizer.
+                amplitude.value = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f)
+            }
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { state.value = VoiceState.TRANSCRIBING }
+            override fun onEndOfSpeech() { state.value = VoiceState.TRANSCRIBING; amplitude.value = 0f }
             override fun onError(error: Int) {
                 state.value = VoiceState.IDLE
                 partial.value = ""
+                amplitude.value = 0f
             }
             override fun onPartialResults(partialResults: Bundle?) {
                 partialResults?.firstResult()?.let { partial.value = it }
@@ -94,7 +101,7 @@ fun rememberSpeechController(onFinalText: (String) -> Unit): SpeechController {
 
     val stop: () -> Unit = { recognizer?.stopListening() }
 
-    return remember { SpeechController(state, partial, start, stop) }
+    return remember { SpeechController(state, partial, start, stop, amplitude) }
 }
 
 private fun Bundle.firstResult(): String? =
@@ -115,6 +122,7 @@ fun rememberServerSpeechController(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val state = remember { mutableStateOf(VoiceState.IDLE) }
     val partial = remember { mutableStateOf("") }
+    val amplitude = remember { mutableStateOf(0f) }
     val recorder = remember { mutableStateOf<android.media.MediaRecorder?>(null) }
     val outFile = remember { mutableStateOf<java.io.File?>(null) }
 
@@ -138,6 +146,15 @@ fun rememberServerSpeechController(
             recorder.value = rec
             outFile.value = file
             state.value = VoiceState.LISTENING
+            // Poll the recorder's peak amplitude to drive the visualizer.
+            scope.launch {
+                while (recorder.value != null && state.value == VoiceState.LISTENING) {
+                    val peak = runCatching { recorder.value?.maxAmplitude ?: 0 }.getOrDefault(0)
+                    amplitude.value = (peak / 32767f).coerceIn(0f, 1f)
+                    kotlinx.coroutines.delay(80)
+                }
+                amplitude.value = 0f
+            }
         }.onFailure { state.value = VoiceState.IDLE }
     }
 
@@ -175,5 +192,5 @@ fun rememberServerSpeechController(
         }
     }
 
-    return remember { SpeechController(state, partial, start, stop) }
+    return remember { SpeechController(state, partial, start, stop, amplitude) }
 }

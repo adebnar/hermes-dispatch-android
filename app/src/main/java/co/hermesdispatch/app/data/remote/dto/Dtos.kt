@@ -45,7 +45,17 @@ data class StartTaskRequest(
     @SerialName("session_id") val sessionId: String? = null,
     val model: String? = null,
     val images: List<String> = emptyList(),
+    val attachments: List<String> = emptyList(),
 )
+
+@Serializable
+data class FileUploadRequest(
+    val filename: String,
+    @SerialName("data_url") val dataUrl: String,
+)
+
+@Serializable
+data class FileUploadResponse(val path: String)
 
 @Serializable
 data class StartTaskResponse(

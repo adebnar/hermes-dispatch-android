@@ -51,11 +51,17 @@ object Routes {
         }
         return "$INBOX_ITEM?${params.joinToString("&")}"
     }
-    const val CHAT = "chat" // chat/{sessionId}?prompt=…&title=…; sessionId == "new" starts fresh
-    fun chat(sessionId: String, prompt: String? = null, title: String? = null): String {
+    const val CHAT = "chat" // chat/{sessionId}?prompt=…&title=…&mode=…; sessionId == "new" starts fresh
+    fun chat(
+        sessionId: String,
+        prompt: String? = null,
+        title: String? = null,
+        mode: String? = null,
+    ): String {
         val params = buildList {
             if (!prompt.isNullOrBlank()) add("prompt=${android.net.Uri.encode(prompt)}")
             if (!title.isNullOrBlank()) add("title=${android.net.Uri.encode(title)}")
+            if (!mode.isNullOrBlank()) add("mode=${android.net.Uri.encode(mode)}")
         }
         return if (params.isEmpty()) "$CHAT/$sessionId" else "$CHAT/$sessionId?${params.joinToString("&")}"
     }
@@ -138,6 +144,9 @@ fun AppNav(
                     TasksScreen(
                         onTaskClick = { id, title -> navController.navigate(Routes.chat(id, title = title)) },
                         onNewTask = { prompt -> navController.navigate(Routes.chat(ChatViewModel.NEW, prompt)) },
+                        onQuickAction = { mode ->
+                            navController.navigate(Routes.chat(ChatViewModel.NEW, mode = mode))
+                        },
                     )
                 }
             }
@@ -172,7 +181,7 @@ fun AppNav(
                 InboxItemScreen(onBack = { navController.popBackStack() })
             }
             composable(
-                route = "${Routes.CHAT}/{sessionId}?prompt={prompt}&title={title}",
+                route = "${Routes.CHAT}/{sessionId}?prompt={prompt}&title={title}&mode={mode}",
                 arguments = listOf(
                     navArgument("sessionId") { type = NavType.StringType },
                     navArgument("prompt") {
@@ -181,6 +190,11 @@ fun AppNav(
                         defaultValue = null
                     },
                     navArgument("title") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("mode") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null

@@ -23,9 +23,15 @@ class ChatRepository @Inject constructor(
         sessionId: String?,
         message: String,
         images: List<String> = emptyList(),
+        attachments: List<String> = emptyList(),
     ): StartResult {
         val resp = api.startTask(
-            StartTaskRequest(sessionId = sessionId, message = message, images = images),
+            StartTaskRequest(
+                sessionId = sessionId,
+                message = message,
+                images = images,
+                attachments = attachments,
+            ),
         )
         return if (resp.kind == "cron") {
             StartResult.Cron(resp.cron)
@@ -45,6 +51,10 @@ class ChatRepository @Inject constructor(
 
     /** Whether a run for this session is actively streaming server-side. */
     suspend fun isRunning(sessionId: String): Boolean = api.taskLive(sessionId)
+
+    /** Upload a document to the bridge/dashboard; returns its managed path. */
+    suspend fun uploadFile(filename: String, dataUrl: String): String =
+        api.uploadFile(filename, dataUrl)
 
     suspend fun cancel(streamId: String) = api.cancelTask(streamId)
 

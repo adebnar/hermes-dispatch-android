@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
@@ -76,6 +77,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -93,6 +95,19 @@ import co.hermesdispatch.app.domain.ActionItem
 import co.hermesdispatch.app.domain.Artifact
 import co.hermesdispatch.app.domain.ChatMessage
 import kotlinx.coroutines.launch
+
+/** Document types offered by the attach-file picker. */
+private val DOCUMENT_MIME_TYPES = arrayOf(
+    "application/pdf",
+    "text/*",
+    "text/csv",
+    "text/comma-separated-values",
+    "application/json",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,6 +141,40 @@ fun ChatScreen(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri -> if (uri != null) attachedImage = ImageUtil.uriToDataUrl(context, uri) }
 
+    var voiceSheetOpen by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+
+    val documentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            DocumentUtil.read(context, uri)?.let { viewModel.attachDocument(it.name, it.dataUrl) }
+        }
+    }
+
+    fun pasteFromClipboard() {
+        clipboard.getText()?.text?.takeIf { it.isNotBlank() }?.let { pasted ->
+            input = listOf(input.trim(), pasted.trim()).filter { it.isNotEmpty() }.joinToString(" ")
+        }
+    }
+
+    fun openDocumentPicker() = documentLauncher.launch(DOCUMENT_MIME_TYPES)
+    fun openGallery() = galleryLauncher.launch(
+        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+    )
+
+    // Quick-action entry: auto-open the chosen modality when arriving from the
+    // dashboard quick-action bar (mode nav arg). Runs once.
+    LaunchedEffect(Unit) {
+        when (viewModel.initialMode) {
+            "voice" -> voiceSheetOpen = true
+            "camera" -> cameraLauncher.launch(null)
+            "gallery" -> openGallery()
+            "document" -> openDocumentPicker()
+            "clipboard" -> pasteFromClipboard()
+        }
+    }
+
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
             scope.launch { listState.animateScrollToItem(state.messages.lastIndex) }
@@ -136,6 +185,10 @@ fun ChatScreen(
         viewModel.send(input, listOfNotNull(attachedImage))
         input = ""
         attachedImage = null
+    }
+
+    if (voiceSheetOpen) {
+        VoiceSheet(speech = speech, onClose = { voiceSheetOpen = false })
     }
 
     Scaffold(
@@ -223,6 +276,8 @@ fun ChatScreen(
                 )
             }
 
+            state.attachment?.let { AttachmentChip(it, onRemove = viewModel::removeAttachment) }
+
             Composer(
                 value = input,
                 onValueChange = { input = it },
@@ -230,14 +285,12 @@ fun ChatScreen(
                 voiceState = speech.state.value,
                 voicePartial = speech.partial.value,
                 hasImage = attachedImage != null,
-                onMic = speech.start,
+                hasAttachment = state.attachment != null,
+                onMic = { voiceSheetOpen = true },
                 onStopVoice = speech.stop,
                 onCamera = { cameraLauncher.launch(null) },
-                onGallery = {
-                    galleryLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
+                onGallery = ::openGallery,
+                onDocument = ::openDocumentPicker,
                 onRemoveImage = { attachedImage = null },
                 onSend = ::doSend,
                 onCancel = viewModel::cancel,
@@ -563,6 +616,37 @@ private fun ActionsPane(actions: List<ActionItem>) {
 }
 
 @Composable
+private fun AttachmentChip(attachment: AttachedDoc, onRemove: () -> Unit) {
+    InputChip(
+        selected = true,
+        onClick = { if (!attachment.uploading) onRemove() },
+        label = {
+            Text(
+                when {
+                    attachment.error -> "Couldn't attach ${attachment.name}"
+                    attachment.uploading -> "Uploading ${attachment.name}…"
+                    else -> attachment.name
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        leadingIcon = {
+            if (attachment.uploading) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(Icons.Filled.AttachFile, contentDescription = null)
+            }
+        },
+        trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove attachment") },
+        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+    )
+}
+
+@Composable
 private fun ToolsRow(tools: Set<String>) {
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -582,10 +666,12 @@ private fun Composer(
     voiceState: VoiceState,
     voicePartial: String,
     hasImage: Boolean,
+    hasAttachment: Boolean = false,
     onMic: () -> Unit,
     onStopVoice: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
+    onDocument: () -> Unit,
     onRemoveImage: () -> Unit,
     onSend: () -> Unit,
     onCancel: () -> Unit,
@@ -596,7 +682,7 @@ private fun Composer(
         VoiceState.LISTENING -> voicePartial.ifBlank { "Listening…" }
         else -> value
     }
-    val canSend = (value.isNotBlank() || hasImage) && !listening
+    val canSend = (value.isNotBlank() || hasImage || hasAttachment) && !listening
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
         if (hasImage) {
             InputChip(
@@ -617,16 +703,12 @@ private fun Composer(
             IconButton(onClick = onGallery, enabled = !running && !listening) {
                 Icon(Icons.Filled.Image, contentDescription = "Attach image")
             }
+            IconButton(onClick = onDocument, enabled = !running && !listening) {
+                Icon(Icons.Filled.AttachFile, contentDescription = "Attach document")
+            }
             if (voiceState != VoiceState.UNAVAILABLE) {
-                val recording = voiceState == VoiceState.LISTENING
-                IconButton(
-                    onClick = { if (recording) onStopVoice() else onMic() },
-                    enabled = !running && voiceState != VoiceState.TRANSCRIBING,
-                ) {
-                    Icon(
-                        if (recording) Icons.Filled.Stop else Icons.Filled.Mic,
-                        contentDescription = if (recording) "Stop recording" else "Voice input",
-                    )
+                IconButton(onClick = onMic, enabled = !running && !listening) {
+                    Icon(Icons.Filled.Mic, contentDescription = "Voice input")
                 }
             }
             OutlinedTextField(

@@ -26,6 +26,14 @@ import kotlinx.serialization.json.jsonPrimitive
 
 data class ApprovalRequest(val command: String, val description: String)
 
+/** A document being attached to the next prompt (uploaded to the bridge). */
+data class AttachedDoc(
+    val name: String,
+    val path: String? = null,
+    val uploading: Boolean = false,
+    val error: Boolean = false,
+)
+
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val actions: List<ActionItem> = emptyList(),
@@ -33,6 +41,7 @@ data class ChatUiState(
     val toolsUsed: Set<String> = emptySet(),
     val pendingApproval: ApprovalRequest? = null,
     val pendingClarify: String? = null,
+    val attachment: AttachedDoc? = null,
     val running: Boolean = false,
     val error: String? = null,
 )
@@ -58,6 +67,9 @@ class ChatViewModel @Inject constructor(
 
     /** Optional prompt to prefill the composer (e.g. from a suggestion chip). */
     val initialInput: String = savedStateHandle.get<String>("prompt").orEmpty()
+
+    /** Quick-action modality to auto-open on entry: voice|camera|gallery|document|clipboard. */
+    val initialMode: String = savedStateHandle.get<String>("mode").orEmpty()
 
     /** Task title for the header when opening an existing task. */
     val initialTitle: String = savedStateHandle.get<String>("title").orEmpty()
@@ -143,22 +155,41 @@ class ChatViewModel @Inject constructor(
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
+    /** Upload a picked document; its managed path is attached to the next send. */
+    fun attachDocument(name: String, dataUrl: String) {
+        _state.update { it.copy(attachment = AttachedDoc(name, uploading = true)) }
+        viewModelScope.launch {
+            runCatching { repository.uploadFile(name, dataUrl) }
+                .onSuccess { path -> _state.update { it.copy(attachment = AttachedDoc(name, path = path)) } }
+                .onFailure { _state.update { it.copy(attachment = AttachedDoc(name, error = true)) } }
+        }
+    }
+
+    fun removeAttachment() = _state.update { it.copy(attachment = null) }
+
     fun send(text: String, images: List<String> = emptyList()) {
         val message = text.trim()
-        if ((message.isEmpty() && images.isEmpty()) || _state.value.running) return
+        val attachment = _state.value.attachment?.takeIf { it.path != null }
+        val attachments = listOfNotNull(attachment?.path)
+        if ((message.isEmpty() && images.isEmpty() && attachments.isEmpty()) || _state.value.running) return
 
+        val label = listOfNotNull(
+            message.ifEmpty { null },
+            attachment?.let { "📎 ${it.name}" },
+            if (message.isEmpty() && images.isNotEmpty()) "(image)" else null,
+        ).joinToString("\n").ifEmpty { "(attachment)" }
         appendMessage(
             ChatMessage.Role.USER,
-            message.ifEmpty { "(image)" },
+            label,
             imageCount = images.size,
             imageData = images.firstOrNull(),
         )
         val assistant = appendMessage(ChatMessage.Role.ASSISTANT, "")
-        _state.update { it.copy(running = true, error = null) }
+        _state.update { it.copy(running = true, error = null, attachment = null) }
 
         streamJob = viewModelScope.launch {
             runCatching {
-                when (val result = repository.startRun(sessionId, message, images)) {
+                when (val result = repository.startRun(sessionId, message, images, attachments)) {
                     is ChatRepository.StartResult.Cron -> {
                         val note = result.cron?.let { " (cron: $it)" }.orEmpty()
                         extendAssistant(assistant.id, "Added to your Scheduled tasks$note.")
